@@ -47,17 +47,35 @@ grant select, insert on interno.operacao_idempotente to app_writer;
 -- anon/authenticated (usados pelo Supabase Auth) nunca leem estas tabelas
 -- diretamente — a aplicação nunca consulta dados financeiros pela Data API,
 -- só pela conexão direta do servidor com app_writer.
+--
+-- Lista explícita (em vez de varrer pg_tables): rodar este bloco de novo
+-- nunca aplica a policy numa tabela alheia a este domínio que por acaso
+-- exista no schema no momento da execução, e nunca quebra por "policy
+-- already exists" — o DROP POLICY IF EXISTS cobre reexecução. Uma
+-- migração futura que crie tabela nova faz seu próprio ENABLE RLS +
+-- CREATE POLICY, não depende deste bloco rodar de novo.
 -- ─────────────────────────────────────────────────────────────
 do $$
 declare
   t record;
 begin
   for t in
-    select schemaname, tablename from pg_tables
-    where schemaname in ('public', 'interno')
-      and tablename not like 'pg_%'
+    select * from (values
+      ('public', 'controle_financeiro'),
+      ('public', 'configuracao_comercial'),
+      ('interno', 'configuracao_rateio'),
+      ('public', 'os'),
+      ('interno', 'os_rateio'),
+      ('public', 'baixa_cliente'),
+      ('public', 'lote_financeiro'),
+      ('public', 'lote_item'),
+      ('interno', 'lote_item_rateio'),
+      ('interno', 'auditoria_evento'),
+      ('interno', 'operacao_idempotente')
+    ) as tabelas(schemaname, tablename)
   loop
     execute format('alter table %I.%I enable row level security', t.schemaname, t.tablename);
+    execute format('drop policy if exists app_writer_acesso_total on %I.%I', t.schemaname, t.tablename);
     execute format(
       'create policy app_writer_acesso_total on %I.%I for all to app_writer using (true) with check (true)',
       t.schemaname, t.tablename
