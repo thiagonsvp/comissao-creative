@@ -63,6 +63,6 @@ export function validarPesos(pesos: PorPessoa, percentualTotal: Percentual): voi
     }
   }
   if (somaPesos(pesos) !== percentualTotal) {
-    throw new ErroValidacao('A soma do rateio deve ser igual ao percentual total de comissão', 'rateio_thiago');
+    throw new ErroValidacao('A soma do rateio deve ser igual ao percentual total de comissão');
   }
 }
