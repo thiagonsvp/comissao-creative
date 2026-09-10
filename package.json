@@ -1,0 +1,39 @@
+{
+  "name": "controle-comissao",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:dominio": "vitest run tests/dominio",
+    "test:integracao": "vitest run tests/integracao",
+    "usuarios:criar": "tsx scripts/criar-usuarios.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.6.1",
+    "@supabase/supabase-js": "2.49.4",
+    "next": "15.5.25",
+    "postgres": "3.4.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "3.24.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "16.4.7",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.25",
+    "fast-check": "3.23.2",
+    "tailwindcss": "^4",
+    "tsx": "4.19.3",
+    "typescript": "^5",
+    "vitest": "3.1.1"
+  }
+}
