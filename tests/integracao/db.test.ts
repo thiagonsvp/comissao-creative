@@ -38,7 +38,6 @@ describe('comTransacaoFinanceira', () => {
   }
 
   afterAll(async () => {
-    await sql`delete from public.os where numero_os_normalizado like 'TESTE-%'`;
     await sql.end();
   });
 });
