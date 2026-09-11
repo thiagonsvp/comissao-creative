@@ -17,6 +17,9 @@ export interface ItemLote {
   clienteSnapshot: string;
   produtoSnapshot: string;
   valorComissao: Centavos;
+  valorOsSnapshot: Centavos;
+  totalPagoClienteSnapshot: Centavos;
+  comissaoComprometidaAnteriorSnapshot: Centavos;
   rateio: PorPessoa | null;
 }
 
@@ -61,7 +64,8 @@ export async function obterLotePorId(
   const itensBrutos = incluirRateio
     ? await exec`
         select li.id, li.ordem, li.numero_os_snapshot, li.cliente_snapshot,
-          li.produto_snapshot, li.valor_comissao,
+          li.produto_snapshot, li.valor_comissao, li.valor_os_snapshot,
+          li.total_pago_cliente_snapshot, li.comissao_comprometida_anterior_snapshot,
           r.valor_thiago, r.valor_geice, r.valor_gabrielle
         from public.lote_item li
         join interno.lote_item_rateio r on r.lote_item_id = li.id
@@ -70,7 +74,8 @@ export async function obterLotePorId(
       `
     : await exec`
         select id, ordem, numero_os_snapshot, cliente_snapshot,
-          produto_snapshot, valor_comissao
+          produto_snapshot, valor_comissao, valor_os_snapshot,
+          total_pago_cliente_snapshot, comissao_comprometida_anterior_snapshot
         from public.lote_item
         where lote_id = ${loteId}
         order by ordem
@@ -90,6 +95,11 @@ export async function obterLotePorId(
       clienteSnapshot: i.cliente_snapshot,
       produtoSnapshot: i.produto_snapshot,
       valorComissao: parseDecimal(i.valor_comissao),
+      valorOsSnapshot: parseDecimal(i.valor_os_snapshot),
+      totalPagoClienteSnapshot: parseDecimal(i.total_pago_cliente_snapshot),
+      comissaoComprometidaAnteriorSnapshot: parseDecimal(
+        i.comissao_comprometida_anterior_snapshot,
+      ),
       rateio: incluirRateio
         ? {
             thiago: parseDecimal(i.valor_thiago),

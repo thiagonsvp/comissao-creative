@@ -60,6 +60,11 @@ describe('consultas e conferência de lote', () => {
         expect(semRateio?.observacao).toBe('lote de teste');
         expect(semRateio?.itens).toHaveLength(1);
         expect(semRateio?.itens[0]).toMatchObject({
+          valorOsSnapshot: 1_000_000n,
+          totalPagoClienteSnapshot: 1_000_000n,
+          comissaoComprometidaAnteriorSnapshot: 0n,
+        });
+        expect(semRateio?.itens[0]).toMatchObject({
           ordem: 1,
           clienteSnapshot: 'Cliente X',
           produtoSnapshot: 'Produto Y',
