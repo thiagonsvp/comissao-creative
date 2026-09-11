@@ -1,11 +1,10 @@
 'use client';
 
 import { useActionState } from 'react';
-import { Campo } from '@/componentes/Campo';
+import { Botao } from '@/componentes/Botao';
+import { CampoTexto } from '@/componentes/Campo';
 import { entrarAction } from '@/servidor/auth-acoes';
 import { ESTADO_INICIAL_FORMULARIO } from '@/servidor/formularios';
-
-const CLASSE_CAMPO = 'rounded border px-3 py-2';
 
 export function FormularioLogin() {
   const [estado, acao, emAndamento] = useActionState(
@@ -14,38 +13,35 @@ export function FormularioLogin() {
   );
 
   return (
-    <form action={acao} className="flex w-full max-w-xs flex-col gap-4">
-      <Campo rotulo="E-mail" htmlFor="email" erro={estado.errosPorCampo.email}>
-        <input
-          type="email"
-          name="email"
-          id="email"
-          autoComplete="username"
-          required
-          className={CLASSE_CAMPO}
-        />
-      </Campo>
-      <Campo rotulo="Senha" htmlFor="senha" erro={estado.errosPorCampo.senha}>
-        <input
-          type="password"
-          name="senha"
-          id="senha"
-          autoComplete="current-password"
-          required
-          className={CLASSE_CAMPO}
-        />
-      </Campo>
-      {estado.erroGeral && <p className="text-sm text-red-600">{estado.erroGeral}</p>}
-      <button
-        type="submit"
-        disabled={emAndamento}
-        className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-      >
+    <form action={acao} className="flex w-full flex-col gap-4">
+      <CampoTexto
+        nome="email"
+        id="email"
+        rotulo="E-mail"
+        type="email"
+        autoComplete="username"
+        required
+        erro={estado.errosPorCampo.email}
+      />
+      <CampoTexto
+        nome="senha"
+        id="senha"
+        rotulo="Senha"
+        type="password"
+        autoComplete="current-password"
+        required
+        erro={estado.errosPorCampo.senha}
+      />
+      {estado.erroGeral && (
+        <p role="alert" className="text-[13px] text-erro">
+          {estado.erroGeral}
+        </p>
+      )}
+      <Botao type="submit" carregando={emAndamento} larguraTotal>
         Entrar
-      </button>
-      <p className="text-xs text-gray-500">
-        Esqueceu a senha? Peça para o responsável pelo sistema redefinir diretamente no
-        Supabase.
+      </Botao>
+      <p className="text-xs text-texto-2">
+        Esqueceu a senha? Peça para o responsável pelo sistema redefinir no Supabase.
       </p>
     </form>
   );
