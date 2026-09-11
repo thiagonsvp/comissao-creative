@@ -20,9 +20,13 @@ export function AlternadorTema() {
   const [preferencia, setPreferencia] = useState<Preferencia>('sistema');
 
   useEffect(() => {
-    const guardada = window.localStorage.getItem('tema') as Preferencia | null;
-    if (guardada === 'claro' || guardada === 'escuro' || guardada === 'sistema') {
-      setPreferencia(guardada);
+    try {
+      const guardada = window.localStorage.getItem('tema') as Preferencia | null;
+      if (guardada === 'claro' || guardada === 'escuro' || guardada === 'sistema') {
+        setPreferencia(guardada);
+      }
+    } catch {
+      // Armazenamento bloqueado (política corporativa, cookies desativados): segue com 'sistema'.
     }
   }, []);
 
@@ -37,7 +41,11 @@ export function AlternadorTema() {
 
   function escolher(valor: Preferencia) {
     setPreferencia(valor);
-    window.localStorage.setItem('tema', valor);
+    try {
+      window.localStorage.setItem('tema', valor);
+    } catch {
+      // Armazenamento bloqueado: perde só a persistência, a troca de tema segue abaixo.
+    }
     aplicar(valor);
   }
 
