@@ -1,13 +1,19 @@
 'use client';
 
 import { useActionState } from 'react';
-import { Campo } from '@/componentes/Campo';
+import { Botao } from '@/componentes/Botao';
+import { Campo, CampoTexto, CLASSE_ENTRADA } from '@/componentes/Campo';
+import { CampoMoeda } from '@/componentes/CampoMoeda';
 import { registrarBaixaAction } from '@/servidor/baixas/acoes';
 import { ESTADO_INICIAL_FORMULARIO } from '@/servidor/formularios';
 
-const CLASSE_CAMPO = 'rounded border px-3 py-2';
-
-export function FormularioBaixa({ osId, dataPadrao }: { osId: string; dataPadrao: string }) {
+export function FormularioBaixa({
+  osId,
+  dataPadrao,
+}: {
+  osId: string;
+  dataPadrao: string;
+}) {
   const [estado, acao, emAndamento] = useActionState(
     registrarBaixaAction,
     ESTADO_INICIAL_FORMULARIO,
@@ -23,30 +29,25 @@ export function FormularioBaixa({ osId, dataPadrao }: { osId: string; dataPadrao
           id="data"
           defaultValue={dataPadrao}
           required
-          className={CLASSE_CAMPO}
+          className={`num ${CLASSE_ENTRADA}`}
         />
       </Campo>
-      <Campo rotulo="Valor pago (R$)" htmlFor="valor" erro={estado.errosPorCampo.valor}>
-        <input
-          name="valor"
-          id="valor"
-          inputMode="decimal"
-          placeholder="0,00"
-          required
-          className={CLASSE_CAMPO}
-        />
-      </Campo>
-      <Campo rotulo="Observação" htmlFor="observacao">
-        <input name="observacao" id="observacao" className={CLASSE_CAMPO} />
-      </Campo>
-      {estado.erroGeral && <p className="text-sm text-red-600">{estado.erroGeral}</p>}
-      <button
-        type="submit"
-        disabled={emAndamento}
-        className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-      >
+      <CampoMoeda
+        nome="valor"
+        id="valor"
+        rotulo="Valor pago"
+        obrigatorio
+        erro={estado.errosPorCampo.valor}
+      />
+      <CampoTexto nome="observacao" id="observacao" rotulo="Observação" />
+      {estado.erroGeral && (
+        <p role="alert" className="text-[13px] text-erro">
+          {estado.erroGeral}
+        </p>
+      )}
+      <Botao type="submit" carregando={emAndamento} larguraTotal className="sm:w-fit">
         Registrar pagamento
-      </button>
+      </Botao>
     </form>
   );
 }
