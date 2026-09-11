@@ -7,8 +7,12 @@ export default async function PaginaConfiguracao() {
   const configuracaoAtual = await obterConfiguracao();
 
   return (
-    <main className="p-6">
-      <h1 className="mb-4 text-xl font-semibold">Configuração</h1>
+    <main>
+      <h1 className="mb-1 text-[1.375rem] font-bold tracking-tight md:text-2xl">Configuração</h1>
+      <p className="mb-6 max-w-lg text-[13.5px] text-texto-2">
+        Estes valores só valem para OS novas. As OS já cadastradas mantêm os percentuais
+        que tinham quando foram criadas.
+      </p>
       <FormularioConfiguracao configuracaoAtual={configuracaoAtual} />
     </main>
   );
