@@ -23,7 +23,7 @@ export function GraficoBarras({
 
   return (
     <figure className="m-0">
-      <div className="flex h-32 items-end gap-1.5" role="presentation">
+      <div className="flex h-32 gap-1.5" aria-hidden="true">
         {pontos.map((ponto, indice) => (
           <div key={ponto.rotulo} className="flex flex-1 flex-col items-center justify-end gap-1.5">
             <span
