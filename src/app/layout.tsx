@@ -23,7 +23,23 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${fonteInterface.variable} ${fonteNumeros.variable}`}>
+    <html
+      lang="pt-BR"
+      className={`${fonteInterface.variable} ${fonteNumeros.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Roda antes da primeira pintura: sem isto a tela pisca clara antes de ficar escura. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var p=localStorage.getItem('tema')||'sistema';" +
+              "var s=window.matchMedia('(prefers-color-scheme: dark)').matches;" +
+              "document.documentElement.dataset.tema=(p==='escuro'||(p==='sistema'&&s))?'escuro':'claro';" +
+              "}catch(e){document.documentElement.dataset.tema='claro';}})();",
+          }}
+        />
+      </head>
       <body className="antialiased">{children}</body>
     </html>
   );
