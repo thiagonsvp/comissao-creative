@@ -6,13 +6,6 @@ import { formatarBRL } from '@/dominio/dinheiro';
 import type { LoteDetalhe } from '@/servidor/lotes/consultas';
 
 export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
-  const totalValorOs = lote.itens.reduce((acc, i) => acc + i.valorOsSnapshot, 0n);
-  const totalPago = lote.itens.reduce((acc, i) => acc + i.totalPagoClienteSnapshot, 0n);
-  const totalJaEnviado = lote.itens.reduce(
-    (acc, i) => acc + i.comissaoComprometidaAnteriorSnapshot,
-    0n,
-  );
-
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 print:px-0 print:py-0">
       <header className="flex items-start justify-between gap-4 border-b-2 border-texto pb-2.5">
@@ -66,16 +59,14 @@ export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
               </td>
             </tr>
           ))}
-          <tr className="border-t-2 border-texto font-bold">
+          <tr className="border-t-2 border-texto">
             <td colSpan={2} className="pt-2.5 text-[11.5px]">
               Total do lote · {lote.itens.length} {lote.itens.length === 1 ? 'item' : 'itens'}
             </td>
-            <td className="num pt-2.5 pl-2 text-right">{formatarBRL(totalValorOs)}</td>
-            <td className="num pt-2.5 pl-2 text-right">{formatarBRL(totalPago)}</td>
-            <td className="num pt-2.5 pl-2 text-right">
-              {totalJaEnviado > 0n ? formatarBRL(totalJaEnviado) : '—'}
-            </td>
-            <td className="num pt-2.5 pl-2 text-right text-[15px] tracking-tight">
+            <td className="num pt-2.5 pl-2 text-right"></td>
+            <td className="num pt-2.5 pl-2 text-right"></td>
+            <td className="num pt-2.5 pl-2 text-right"></td>
+            <td className="num pt-2.5 pl-2 text-right text-[15px] font-bold tracking-tight">
               {formatarBRL(lote.valorTotal)}
             </td>
           </tr>
