@@ -32,7 +32,7 @@ export function FormularioConfiguracao({
         percentuais.
       </p>
       <Campo
-        label="% de comissão padrão"
+        rotulo="% de comissão padrão"
         htmlFor="percentualComissaoPadrao"
         erro={estado.errosPorCampo.percentualComissaoPadrao}
       >
@@ -44,7 +44,7 @@ export function FormularioConfiguracao({
         />
       </Campo>
       <Campo
-        label="% Thiago"
+        rotulo="% Thiago"
         htmlFor="rateioThiagoPadrao"
         erro={estado.errosPorCampo.rateioThiagoPadrao}
       >
@@ -56,7 +56,7 @@ export function FormularioConfiguracao({
         />
       </Campo>
       <Campo
-        label="% Geice"
+        rotulo="% Geice"
         htmlFor="rateioGeicePadrao"
         erro={estado.errosPorCampo.rateioGeicePadrao}
       >
@@ -68,7 +68,7 @@ export function FormularioConfiguracao({
         />
       </Campo>
       <Campo
-        label="% Gabrielle"
+        rotulo="% Gabrielle"
         htmlFor="rateioGabriellePadrao"
         erro={estado.errosPorCampo.rateioGabriellePadrao}
       >

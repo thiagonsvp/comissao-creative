@@ -15,7 +15,7 @@ export function FormularioLogin() {
 
   return (
     <form action={acao} className="flex w-full max-w-xs flex-col gap-4">
-      <Campo label="E-mail" htmlFor="email" erro={estado.errosPorCampo.email}>
+      <Campo rotulo="E-mail" htmlFor="email" erro={estado.errosPorCampo.email}>
         <input
           type="email"
           name="email"
@@ -25,7 +25,7 @@ export function FormularioLogin() {
           className={CLASSE_CAMPO}
         />
       </Campo>
-      <Campo label="Senha" htmlFor="senha" erro={estado.errosPorCampo.senha}>
+      <Campo rotulo="Senha" htmlFor="senha" erro={estado.errosPorCampo.senha}>
         <input
           type="password"
           name="senha"

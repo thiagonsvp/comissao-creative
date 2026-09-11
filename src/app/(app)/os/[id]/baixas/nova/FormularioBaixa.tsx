@@ -16,7 +16,7 @@ export function FormularioBaixa({ osId, dataPadrao }: { osId: string; dataPadrao
   return (
     <form action={acao} className="flex max-w-sm flex-col gap-4">
       <input type="hidden" name="osId" value={osId} />
-      <Campo label="Data do pagamento" htmlFor="data" erro={estado.errosPorCampo.data}>
+      <Campo rotulo="Data do pagamento" htmlFor="data" erro={estado.errosPorCampo.data}>
         <input
           type="date"
           name="data"
@@ -26,7 +26,7 @@ export function FormularioBaixa({ osId, dataPadrao }: { osId: string; dataPadrao
           className={CLASSE_CAMPO}
         />
       </Campo>
-      <Campo label="Valor pago (R$)" htmlFor="valor" erro={estado.errosPorCampo.valor}>
+      <Campo rotulo="Valor pago (R$)" htmlFor="valor" erro={estado.errosPorCampo.valor}>
         <input
           name="valor"
           id="valor"
@@ -36,7 +36,7 @@ export function FormularioBaixa({ osId, dataPadrao }: { osId: string; dataPadrao
           className={CLASSE_CAMPO}
         />
       </Campo>
-      <Campo label="Observação" htmlFor="observacao">
+      <Campo rotulo="Observação" htmlFor="observacao">
         <input name="observacao" id="observacao" className={CLASSE_CAMPO} />
       </Campo>
       {estado.erroGeral && <p className="text-sm text-red-600">{estado.erroGeral}</p>}

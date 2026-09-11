@@ -31,23 +31,23 @@ export function FormularioOs({
 
   return (
     <form action={acao} className="flex max-w-lg flex-col gap-4">
-      <Campo label="Número da OS" htmlFor="numeroOs" erro={estado.errosPorCampo.numeroOs}>
+      <Campo rotulo="Número da OS" htmlFor="numeroOs" erro={estado.errosPorCampo.numeroOs}>
         <input name="numeroOs" id="numeroOs" required className={CLASSE_CAMPO} />
       </Campo>
-      <Campo label="Cliente" htmlFor="cliente" erro={estado.errosPorCampo.cliente}>
+      <Campo rotulo="Cliente" htmlFor="cliente" erro={estado.errosPorCampo.cliente}>
         <input name="cliente" id="cliente" required className={CLASSE_CAMPO} />
       </Campo>
-      <Campo label="Produto" htmlFor="produto" erro={estado.errosPorCampo.produto}>
+      <Campo rotulo="Produto" htmlFor="produto" erro={estado.errosPorCampo.produto}>
         <input name="produto" id="produto" required className={CLASSE_CAMPO} />
       </Campo>
       <Campo
-        label="Tipo de pagamento"
+        rotulo="Tipo de pagamento"
         htmlFor="tipoPagamento"
         erro={estado.errosPorCampo.tipoPagamento}
       >
         <input name="tipoPagamento" id="tipoPagamento" required className={CLASSE_CAMPO} />
       </Campo>
-      <Campo label="Valor (R$)" htmlFor="valor" erro={estado.errosPorCampo.valor}>
+      <Campo rotulo="Valor (R$)" htmlFor="valor" erro={estado.errosPorCampo.valor}>
         <input
           name="valor"
           id="valor"
@@ -57,7 +57,7 @@ export function FormularioOs({
           className={CLASSE_CAMPO}
         />
       </Campo>
-      <Campo label="Data da venda" htmlFor="dataVenda" erro={estado.errosPorCampo.dataVenda}>
+      <Campo rotulo="Data da venda" htmlFor="dataVenda" erro={estado.errosPorCampo.dataVenda}>
         <input
           type="date"
           name="dataVenda"
@@ -68,7 +68,7 @@ export function FormularioOs({
         />
       </Campo>
       <Campo
-        label="% comissão total"
+        rotulo="% comissão total"
         htmlFor="percentualComissao"
         erro={estado.errosPorCampo.percentualComissao}
       >
@@ -82,7 +82,7 @@ export function FormularioOs({
         />
       </Campo>
       <div className="grid grid-cols-3 gap-2">
-        <Campo label="% Thiago" htmlFor="rateioThiago" erro={estado.errosPorCampo.rateio_thiago}>
+        <Campo rotulo="% Thiago" htmlFor="rateioThiago" erro={estado.errosPorCampo.rateio_thiago}>
           <input
             name="rateioThiago"
             id="rateioThiago"
@@ -92,7 +92,7 @@ export function FormularioOs({
             className={CLASSE_CAMPO}
           />
         </Campo>
-        <Campo label="% Geice" htmlFor="rateioGeice" erro={estado.errosPorCampo.rateio_geice}>
+        <Campo rotulo="% Geice" htmlFor="rateioGeice" erro={estado.errosPorCampo.rateio_geice}>
           <input
             name="rateioGeice"
             id="rateioGeice"
@@ -103,7 +103,7 @@ export function FormularioOs({
           />
         </Campo>
         <Campo
-          label="% Gabrielle"
+          rotulo="% Gabrielle"
           htmlFor="rateioGabrielle"
           erro={estado.errosPorCampo.rateio_gabrielle}
         >
@@ -117,7 +117,7 @@ export function FormularioOs({
           />
         </Campo>
       </div>
-      <Campo label="Observação" htmlFor="observacao">
+      <Campo rotulo="Observação" htmlFor="observacao">
         <textarea name="observacao" id="observacao" rows={3} className={CLASSE_CAMPO} />
       </Campo>
       {estado.erroGeral && <p className="text-sm text-red-600">{estado.erroGeral}</p>}
