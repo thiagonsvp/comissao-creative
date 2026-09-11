@@ -10,6 +10,13 @@ export const sql = postgres(process.env.DATABASE_URL, {
   onnotice: () => {},
 });
 
+/**
+ * Leituras podem rodar na conexão normal ou dentro de uma transação
+ * financeira em andamento (a prévia de lote precisa enxergar o que a própria
+ * transação já escreveu, sob o bloqueio global).
+ */
+export type Executor = postgres.Sql | postgres.TransactionSql;
+
 export async function comTransacaoFinanceira<T>(
   fn: (tx: postgres.TransactionSql) => Promise<T>,
 ): Promise<T> {

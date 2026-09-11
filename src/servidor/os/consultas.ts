@@ -1,4 +1,3 @@
-import type postgres from 'postgres';
 import {
   parseDecimal,
   parsePercentual,
@@ -12,14 +11,9 @@ import {
   type StatusRecebimento,
 } from '@/dominio/comissao';
 import type { PorPessoa } from '@/dominio/rateio';
-import { sql } from '@/servidor/db';
+import { sql, type Executor } from '@/servidor/db';
 
-/**
- * Leituras podem rodar na conexão normal ou dentro de uma transação
- * financeira em andamento (a prévia de lote precisa enxergar o que a própria
- * transação já escreveu, sob o bloqueio global).
- */
-export type Executor = postgres.Sql | postgres.TransactionSql;
+export type { Executor };
 
 export interface OsListada {
   id: string;

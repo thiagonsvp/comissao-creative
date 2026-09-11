@@ -183,3 +183,34 @@ export async function gerarLote(
 
   return { loteId: lote.id, numero: Number(lote.numero), valorTotal };
 }
+
+export async function aprovarLote(
+  tx: postgres.TransactionSql,
+  loteId: string,
+  usuarioId: string,
+): Promise<void> {
+  const [lote] = await tx`
+    select estado_conferencia from public.lote_financeiro
+    where id = ${loteId} for update
+  `;
+  if (!lote) throw new ErroValidacao('Lote não encontrado');
+  if (lote.estado_conferencia !== 'enviado') {
+    throw new ErroValidacao('Só é possível aprovar um lote que está enviado');
+  }
+
+  await tx`
+    update public.lote_financeiro
+    set estado_conferencia = 'aprovado',
+        aprovado_em = now(),
+        aprovado_por = ${usuarioId},
+        atualizado_por = ${usuarioId}
+    where id = ${loteId}
+  `;
+
+  await registrarAuditoria(tx, {
+    entidade: 'lote_financeiro',
+    entidadeId: loteId,
+    acao: 'aprovar',
+    responsavelId: usuarioId,
+  });
+}
