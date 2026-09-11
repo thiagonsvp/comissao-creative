@@ -1,14 +1,11 @@
-import Link from 'next/link';
-import { formatarBRL } from '@/dominio/dinheiro';
-import type { StatusRecebimento } from '@/dominio/comissao';
+import { BotaoLink } from '@/componentes/Botao';
+import { CartaoLista } from '@/componentes/CartaoLista';
+import { EstadoVazio } from '@/componentes/EstadoVazio';
+import { Moeda } from '@/componentes/Moeda';
+import { Selo, seloDeStatusOs } from '@/componentes/Selo';
+import { CLASSE_ENTRADA } from '@/componentes/Campo';
 import { sessaoDaPagina } from '@/servidor/auth';
 import { listarOs } from '@/servidor/os/consultas';
-
-const RUBRICA_STATUS: Record<StatusRecebimento, string> = {
-  aberta: 'Aberta',
-  parcial: 'Parcial',
-  quitada: 'Quitada',
-};
 
 export default async function PaginaListaOs({
   searchParams,
@@ -18,65 +15,95 @@ export default async function PaginaListaOs({
   const sessao = await sessaoDaPagina();
   const { q } = await searchParams;
   const lista = await listarOs({ busca: q });
+  const ehAdmin = sessao.papel === 'admin';
 
   return (
-    <main className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Ordens de serviço</h1>
-        {sessao.papel === 'admin' && (
-          <Link href="/os/nova" className="rounded bg-blue-600 px-4 py-2 text-white">
-            Nova OS
-          </Link>
-        )}
+    <main>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h1 className="text-[1.375rem] font-bold tracking-tight md:text-2xl">
+          Ordens de serviço
+        </h1>
+        {ehAdmin && <BotaoLink href="/os/nova">Nova OS</BotaoLink>}
       </div>
 
-      <form className="mb-4">
+      <form className="mb-5">
         <label htmlFor="q" className="sr-only">
-          Buscar
+          Buscar ordens de serviço
         </label>
         <input
           type="search"
           name="q"
           id="q"
           defaultValue={q ?? ''}
-          placeholder="Buscar por número, cliente ou produto"
-          className="w-80 rounded border px-3 py-2"
+          placeholder="Buscar número, cliente ou produto"
+          className={`${CLASSE_ENTRADA} md:max-w-sm`}
         />
       </form>
 
       {lista.length === 0 ? (
-        <p className="mt-4 text-gray-500">Nenhuma OS encontrada.</p>
+        <EstadoVazio
+          titulo="Nenhuma OS encontrada"
+          descricao={
+            q
+              ? 'Nenhuma ordem de serviço corresponde a essa busca. Tente outro número, cliente ou produto.'
+              : 'Ainda não há ordens de serviço cadastradas.'
+          }
+          acao={ehAdmin && !q ? <BotaoLink href="/os/nova">Cadastrar a primeira OS</BotaoLink> : undefined}
+        />
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left">
-              <th scope="col" className="py-2">
-                Número
-              </th>
-              <th scope="col">Cliente</th>
-              <th scope="col">Produto</th>
-              <th scope="col">Valor</th>
-              <th scope="col">Status</th>
-              <th scope="col">Comissão disponível</th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          {/* Celular: cartões, sem rolagem lateral. */}
+          <ul className="flex flex-col gap-2.5 md:hidden">
             {lista.map((os) => (
-              <tr key={os.id} className="border-b">
-                <td className="py-2">
-                  <Link href={`/os/${os.id}`} className="text-blue-600 underline">
-                    {os.numeroOs}
-                  </Link>
-                </td>
-                <td>{os.cliente}</td>
-                <td>{os.produto}</td>
-                <td>{formatarBRL(os.valor)}</td>
-                <td>{RUBRICA_STATUS[os.status]}</td>
-                <td>{formatarBRL(os.comissaoDisponivel)}</td>
-              </tr>
+              <li key={os.id}>
+                <CartaoLista
+                  href={`/os/${os.id}`}
+                  titulo={os.numeroOs}
+                  selo={seloDeStatusOs(os.status)}
+                  descricao={`${os.cliente} · ${os.produto}`}
+                  rotuloValor="Disponível"
+                  valor={os.comissaoDisponivel}
+                />
+              </li>
             ))}
-          </tbody>
-        </table>
+          </ul>
+
+          {/* Computador: tabela. */}
+          <table className="tabela hidden md:table">
+            <thead>
+              <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Produto</th>
+                <th scope="col" className="direita">Valor</th>
+                <th scope="col">Status</th>
+                <th scope="col" className="direita">Comissão disponível</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((os) => (
+                <tr key={os.id}>
+                  <td>
+                    <a href={`/os/${os.id}`} className="num font-bold text-destaque underline">
+                      {os.numeroOs}
+                    </a>
+                  </td>
+                  <td>{os.cliente}</td>
+                  <td className="text-texto-2">{os.produto}</td>
+                  <td className="direita"><Moeda valor={os.valor} /></td>
+                  <td>
+                    <Selo tom={seloDeStatusOs(os.status).tom}>
+                      {seloDeStatusOs(os.status).rotulo}
+                    </Selo>
+                  </td>
+                  <td className="direita font-semibold">
+                    <Moeda valor={os.comissaoDisponivel} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </main>
   );
