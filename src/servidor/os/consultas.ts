@@ -176,3 +176,24 @@ export async function obterOsPorId(
     })),
   };
 }
+
+export interface OsElegivelParaLote {
+  id: string;
+  numeroOs: string;
+  cliente: string;
+  comissaoDisponivel: Centavos;
+}
+
+export async function listarOsComComissaoDisponivel(
+  exec: Executor = sql,
+): Promise<OsElegivelParaLote[]> {
+  const todas = await listarOs({}, exec);
+  return todas
+    .filter((os) => os.comissaoDisponivel > 0n)
+    .map((os) => ({
+      id: os.id,
+      numeroOs: os.numeroOs,
+      cliente: os.cliente,
+      comissaoDisponivel: os.comissaoDisponivel,
+    }));
+}

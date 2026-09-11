@@ -1,10 +1,15 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ErroPermissao, ErroValidacao } from '@/dominio/erros';
 import { exigirPapel } from '@/servidor/auth';
 import { comTransacaoFinanceira } from '@/servidor/db';
-import { aprovarLote } from './servico';
+import {
+  tratarErroFormulario,
+  type EstadoFormulario,
+} from '@/servidor/formularios';
+import { aprovarLote, gerarLote } from './servico';
 
 export async function aprovarLoteAction(
   loteId: string,
@@ -23,4 +28,28 @@ export async function aprovarLoteAction(
   revalidatePath('/lotes');
   revalidatePath(`/lotes/${loteId}`);
   return { erro: null };
+}
+
+export async function gerarLoteAction(
+  _estadoAnterior: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const osIds = formData.getAll('osIds').map(String);
+  const observacao = String(formData.get('observacao') ?? '').trim() || null;
+
+  let loteId: string;
+  try {
+    const sessao = await exigirPapel('admin');
+    const resultado = await comTransacaoFinanceira((tx) =>
+      gerarLote(tx, { osIds, observacao }, sessao.userId),
+    );
+    loteId = resultado.loteId;
+  } catch (erro) {
+    return tratarErroFormulario(erro);
+  }
+
+  // Fora do try: redirect() sinaliza por exceção e não pode ser capturado aqui.
+  revalidatePath('/lotes');
+  revalidatePath('/os');
+  redirect(`/lotes/${loteId}`);
 }
