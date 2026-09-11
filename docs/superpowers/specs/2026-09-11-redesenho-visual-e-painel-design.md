@@ -247,11 +247,18 @@ porque permite conferir cada linha sem perguntar nada ao admin.
 
 ## 8. Arquitetura e impacto no repositório
 
-O redesenho toca **apenas** `src/app`, `src/componentes` e `src/app/globals.css`. A
-única adição fora disso é `src/servidor/painel/consultas.ts`.
+O redesenho toca **quase só** `src/app`, `src/componentes` e `src/app/globals.css`.
+Fora disso:
 
-`src/dominio` e o restante de `src/servidor` não mudam. Nenhuma migração, nenhuma
-dependência nova de runtime.
+- `src/dominio/painel.ts` — **novo**, puro: as agregações descritas em §6.1.
+- `src/servidor/painel/consultas.ts` — **novo**: as duas consultas do painel.
+- `src/servidor/lotes/consultas.ts` — **modificado**: `ItemLote` ganha
+  `valorOsSnapshot`, `totalPagoClienteSnapshot` e
+  `comissaoComprometidaAnteriorSnapshot`, porque as colunas novas do relatório
+  (§7) existem no banco mas não eram projetadas. Só projeção; nenhum cálculo muda.
+
+Nenhum outro arquivo de `src/dominio` ou `src/servidor` é alterado. Nenhuma
+migração, nenhuma dependência nova de runtime.
 
 Tokens ficam em `globals.css` como variáveis CSS dentro de `@theme` — o projeto já usa
 Tailwind v4, então a fundação encaixa no que existe sem reescrever configuração.
