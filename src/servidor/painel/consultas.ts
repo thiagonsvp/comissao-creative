@@ -45,17 +45,21 @@ export async function componentesPorOs(
     ) as comprometido
   `;
 
+  // Sem filtro de `situacao`: esta é a única consulta do sistema que olhava essa
+  // coluna, e as demais (listarOs, obterOsPorId, listarOsComComissaoDisponivel,
+  // geração de lote) ignoram OS canceladas de propósitos diferentes entre si.
+  // Tratar cancelamento aqui sozinho criaria divergência sobre qual universo de
+  // OS o painel conta em relação ao resto do sistema. Fica para a fase de
+  // cancelamento, quando todas as consultas tratarem a coluna de forma coerente.
   const linhas = incluirRateio
     ? await exec`
         select ${comuns}, r.rateio_thiago, r.rateio_geice, r.rateio_gabrielle
         from public.os o
         join interno.os_rateio r on r.os_id = o.id
-        where o.situacao = 'ativa'
       `
     : await exec`
         select ${comuns}
         from public.os o
-        where o.situacao = 'ativa'
       `;
 
   return linhas.map((linha) => ({
