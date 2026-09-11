@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { comTransacaoFinanceira, sql } from '@/servidor/db';
 import { cadastrarOs } from '@/servidor/os/servico';
 import { listarOs, obterOsPorId } from '@/servidor/os/consultas';
-import { criarUsuarioTeste, numeroOsTeste } from './ajuda';
+import { criarUsuarioTeste, espiaoSql, numeroOsTeste } from './ajuda';
 
 // app_writer não tem privilégio de DELETE (ver 20260910000200_privilegios.sql),
 // então o teste monta o cenário dentro da transação e desfaz tudo com rollback.
@@ -67,6 +67,39 @@ describe('consultas de OS', () => {
         expect(comRateio?.rateio).toEqual({ thiago: 500n, geice: 100n, gabrielle: 100n });
 
         expect(await obterOsPorId(randomUUID(), false, tx)).toBeNull();
+
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
+  it('sem rateio, nenhum SQL emitido menciona a tabela de rateio da OS', async () => {
+    const numero = numeroOsTeste('CONSSPY');
+
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const { osId } = await cadastrarOs(
+          tx,
+          {
+            numeroOs: numero,
+            cliente: 'Cliente Espião',
+            produto: 'Produto Espião',
+            tipoPagamento: 'Pix',
+            valor: 1_000_000n,
+            percentualComissao: 700n,
+            dataVenda: '2026-09-01',
+            observacao: null,
+            rateio: { thiago: 500n, geice: 100n, gabrielle: 100n },
+          },
+          usuario.id,
+        );
+
+        const { exec, consultas } = espiaoSql(tx);
+        await obterOsPorId(osId, false, exec);
+
+        expect(consultas.length).toBeGreaterThan(0);
+        const sqlEmitido = consultas.join('\n');
+        expect(sqlEmitido).not.toMatch(/os_rateio|rateio_thiago|rateio_geice|rateio_gabrielle/i);
 
         throw ROLLBACK_TESTE;
       }),

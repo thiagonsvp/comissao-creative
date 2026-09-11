@@ -6,7 +6,7 @@ import { cadastrarOs } from '@/servidor/os/servico';
 import { registrarBaixaCliente } from '@/servidor/baixas/servico';
 import { aprovarLote, gerarLote } from '@/servidor/lotes/servico';
 import { listarLotes, obterLotePorId } from '@/servidor/lotes/consultas';
-import { criarUsuarioTeste, numeroOsTeste } from './ajuda';
+import { criarUsuarioTeste, espiaoSql, numeroOsTeste } from './ajuda';
 
 // app_writer não tem privilégio de DELETE: cada caso monta o cenário dentro da
 // transação e desfaz com rollback.
@@ -80,6 +80,23 @@ describe('consultas e conferência de lote', () => {
         });
 
         expect(await obterLotePorId('11111111-1111-1111-1111-111111111111', false, tx)).toBeNull();
+
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
+  it('sem rateio, nenhum SQL emitido menciona a tabela de rateio do item de lote', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const { loteId } = await loteQuitado(tx);
+
+        const { exec, consultas } = espiaoSql(tx);
+        await obterLotePorId(loteId, false, exec);
+
+        expect(consultas.length).toBeGreaterThan(0);
+        const sqlEmitido = consultas.join('\n');
+        expect(sqlEmitido).not.toMatch(/lote_item_rateio|rateio_thiago|rateio_geice|rateio_gabrielle/i);
 
         throw ROLLBACK_TESTE;
       }),

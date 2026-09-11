@@ -6,7 +6,7 @@ import { registrarBaixaCliente } from '@/servidor/baixas/servico';
 import { gerarLote } from '@/servidor/lotes/servico';
 import { componentesPorOs, resumoLotes } from '@/servidor/painel/consultas';
 import { ratearDisponivel, resumirComissoes } from '@/dominio/painel';
-import { criarUsuarioTeste, numeroOsTeste } from './ajuda';
+import { criarUsuarioTeste, espiaoSql, numeroOsTeste } from './ajuda';
 
 const ROLLBACK_TESTE = new Error('ROLLBACK_TESTE');
 
@@ -68,6 +68,25 @@ describe('consultas do painel', () => {
         const semRateio = await componentesPorOs(false, tx);
         expect(semRateio.find((l) => l.osId === osId)?.pesos).toBeNull();
         expect(semRateio.every((l) => l.pesos === null)).toBe(true);
+
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
+  it('sem rateio, nenhum SQL emitido menciona as tabelas ou colunas de rateio', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        await osComMetadePaga(tx);
+        const { exec, consultas } = espiaoSql(tx);
+
+        await componentesPorOs(false, exec);
+
+        expect(consultas.length).toBeGreaterThan(0);
+        const sqlEmitido = consultas.join('\n');
+        expect(sqlEmitido).not.toMatch(
+          /os_rateio|lote_item_rateio|rateio_thiago|rateio_geice|rateio_gabrielle/i,
+        );
 
         throw ROLLBACK_TESTE;
       }),
