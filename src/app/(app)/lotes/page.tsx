@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BotaoLink } from '@/componentes/Botao';
 import { CartaoLista } from '@/componentes/CartaoLista';
 import { EstadoVazio } from '@/componentes/EstadoVazio';
@@ -59,9 +60,9 @@ export default async function PaginaListaLotes() {
               {lotes.map((lote) => (
                 <tr key={lote.id}>
                   <td>
-                    <a href={`/lotes/${lote.id}`} className="num font-bold text-destaque underline">
+                    <Link href={`/lotes/${lote.id}`} className="num font-bold text-destaque underline">
                       Lote {lote.numero}
-                    </a>
+                    </Link>
                   </td>
                   <td className="num">
                     {lote.dataEnvio ? formatarDataBr(lote.dataEnvio) : '—'}

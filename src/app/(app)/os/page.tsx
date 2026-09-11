@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BotaoLink } from '@/componentes/Botao';
 import { CartaoLista } from '@/componentes/CartaoLista';
 import { EstadoVazio } from '@/componentes/EstadoVazio';
@@ -84,9 +85,9 @@ export default async function PaginaListaOs({
               {lista.map((os) => (
                 <tr key={os.id}>
                   <td>
-                    <a href={`/os/${os.id}`} className="num font-bold text-destaque underline">
+                    <Link href={`/os/${os.id}`} className="num font-bold text-destaque underline">
                       {os.numeroOs}
-                    </a>
+                    </Link>
                   </td>
                   <td>{os.cliente}</td>
                   <td className="text-texto-2">{os.produto}</td>
