@@ -846,7 +846,7 @@ export function validarPesos(pesos: PorPessoa, percentualTotal: Percentual): voi
     }
   }
   if (somaPesos(pesos) !== percentualTotal) {
-    throw new ErroValidacao('A soma do rateio deve ser igual ao percentual total de comissão', 'rateio_thiago');
+    throw new ErroValidacao('A soma do rateio deve ser igual ao percentual total de comissão');
   }
 }
 ```
@@ -3059,7 +3059,7 @@ git commit -m "feat: geração de lote com reservas, snapshots e rateio congelad
   - `obterLotePorId(loteId: string, incluirRateio: boolean): Promise<LoteDetalhe | null>`
 - Produces em `acoes.ts`:
   - `aprovarLoteAction(loteId: string): Promise<void>` (server action simples, sem `useActionState`, chamada por um `<form action={...}>` com `bind`) — só `admin`; exige `estado_conferencia = 'enviado'`; lança `ErroValidacao` fora disso; grava `aprovado_em/por`, muda estado, audita, `revalidatePath`.
-  - `marcarLotePagoAction(loteId: string): Promise<void>` — só `admin`; exige `estado_conferencia = 'aprovado'`; muda para `pago`... **Nota:** a spec completa (§8) trata "pago" via `recebimento_financeiro` confirmado, que é Fase 2. Nesta Fase 1, "pago" é apenas um rótulo informativo no `lote_financeiro.estado_conferencia`descrito already as `'rascunho'|'enviado'|'aprovado'|'cancelado'` — **não existe estado `pago` na migração desta fase**. Portanto `marcarLotePagoAction` **não faz parte da Tarefa 18**; a Fase 1 vai até `aprovado`. Isso é uma redução de escopo deliberada em relação ao pedido original do usuário (fluxo enviado → aprovado → pago) — Fase 2 adiciona `recebimento_financeiro` e o estado efetivo de "pago" já citado no spec.
+- **Fora desta tarefa (e desta fase):** `lote_financeiro.estado_conferencia` só tem `'rascunho'|'enviado'|'aprovado'|'cancelado'` (sem `'pago'`) — a spec (§8) trata o pagamento efetivo via `recebimento_financeiro` confirmado, que é Fase 2. A Fase 1 vai até `aprovado`; não há `marcarLotePagoAction` nesta tarefa.
 
 - [ ] **Passo 1: Teste de integração**
 
@@ -3632,7 +3632,7 @@ git commit -m "feat: detalhe de lote, aprovação e relatório de impressão sem
 - Create: `src/app/login/page.tsx`, `src/app/login/FormularioLogin.tsx`, `src/servidor/auth-acoes.ts`, `src/app/(app)/layout.tsx`, `src/app/(app)/page.tsx`, `src/app/(app)/error.tsx`
 
 **Interfaces:**
-- Produces: `entrarAction(_estadoAnterior, formData): Promise<EstadoFormulario>` (login via `criarClienteNavegador`... na verdade via cliente de servidor, ver Passo 2), `sairAction(): Promise<void>`.
+- Produces: `entrarAction(_estadoAnterior, formData): Promise<EstadoFormulario>` (login via `criarClienteServidor`, chamado dentro da própria server action — ver Passo 1), `sairAction(): Promise<void>`.
 
 - [ ] **Passo 1: Server actions de entrar/sair**
 
