@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { exigirSessao } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { obterLotePorId } from '@/servidor/lotes/consultas';
 import { ConteudoImpressao } from './ConteudoImpressao';
 
@@ -8,7 +8,7 @@ export default async function PaginaImprimirLote({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await exigirSessao();
+  await sessaoDaPagina();
   const { id } = await params;
   // Sempre `false`: o documento do financeiro nunca carrega nem renderiza
   // rateio, nem quando quem abre é admin.

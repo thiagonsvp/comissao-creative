@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatarDataBr } from '@/dominio/datas';
 import { formatarBRL } from '@/dominio/dinheiro';
-import { exigirSessao } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { obterLotePorId } from '@/servidor/lotes/consultas';
 import { RUBRICA_ESTADO } from '../rubricas';
 import { AcoesLote } from './AcoesLote';
@@ -12,7 +12,7 @@ export default async function PaginaDetalheLote({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const sessao = await exigirSessao();
+  const sessao = await sessaoDaPagina();
   const { id } = await params;
   const ehAdmin = sessao.papel === 'admin';
   const lote = await obterLotePorId(id, ehAdmin);

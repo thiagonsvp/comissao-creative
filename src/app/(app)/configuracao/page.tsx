@@ -1,9 +1,9 @@
-import { exigirPapel } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { obterConfiguracao } from '@/servidor/configuracao/servico';
 import { FormularioConfiguracao } from './FormularioConfiguracao';
 
 export default async function PaginaConfiguracao() {
-  await exigirPapel('admin');
+  await sessaoDaPagina('admin');
   const configuracaoAtual = await obterConfiguracao();
 
   return (

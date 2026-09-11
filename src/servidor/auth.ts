@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { ErroPermissao } from '@/dominio/erros';
 import { criarClienteServidor } from './supabase/servidor';
 
@@ -37,5 +38,19 @@ export async function exigirPapel(papel: Papel): Promise<Sessao> {
   if (sessao.papel !== papel) {
     throw new ErroPermissao('Você não tem permissão para esta ação');
   }
+  return sessao;
+}
+
+/**
+ * Versão para páginas (Server Components). Em produção o Next.js oculta a
+ * mensagem de qualquer erro lançado na renderização e devolve 500, então
+ * lançar `ErroPermissao` numa página viraria um erro técnico ilegível.
+ * Aqui redirecionamos para telas próprias; nas server actions continua
+ * valendo `exigirSessao`/`exigirPapel`, cujo erro o formulário exibe.
+ */
+export async function sessaoDaPagina(papel?: Papel): Promise<Sessao> {
+  const sessao = await sessaoAtual();
+  if (!sessao) redirect('/login');
+  if (papel && sessao.papel !== papel) redirect('/sem-permissao');
   return sessao;
 }

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { hojeNegocio } from '@/dominio/datas';
 import { formatarBRL } from '@/dominio/dinheiro';
-import { exigirPapel } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { obterOsPorId } from '@/servidor/os/consultas';
 import { FormularioBaixa } from './FormularioBaixa';
 
@@ -11,7 +11,7 @@ export default async function PaginaNovaBaixa({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await exigirPapel('admin');
+  await sessaoDaPagina('admin');
   const { id } = await params;
   const os = await obterOsPorId(id, false);
   if (!os) notFound();

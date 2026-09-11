@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { exigirSessao } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { sairAction } from '@/servidor/auth-acoes';
 
 export default async function LayoutApp({
@@ -7,7 +7,7 @@ export default async function LayoutApp({
 }: {
   children: React.ReactNode;
 }) {
-  const sessao = await exigirSessao();
+  const sessao = await sessaoDaPagina();
 
   return (
     <div>

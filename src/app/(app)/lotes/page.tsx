@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { formatarDataBr } from '@/dominio/datas';
 import { formatarBRL } from '@/dominio/dinheiro';
-import { exigirSessao } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { listarLotes } from '@/servidor/lotes/consultas';
 import { RUBRICA_ESTADO } from './rubricas';
 
 export default async function PaginaListaLotes() {
-  const sessao = await exigirSessao();
+  const sessao = await sessaoDaPagina();
   const lotes = await listarLotes();
 
   return (

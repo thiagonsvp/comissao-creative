@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatarDataBr } from '@/dominio/datas';
 import { formatarBRL, formatarPercentual } from '@/dominio/dinheiro';
-import { exigirSessao } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { obterOsPorId } from '@/servidor/os/consultas';
 
 export default async function PaginaDetalheOs({
@@ -10,7 +10,7 @@ export default async function PaginaDetalheOs({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const sessao = await exigirSessao();
+  const sessao = await sessaoDaPagina();
   const { id } = await params;
   const os = await obterOsPorId(id, sessao.papel === 'admin');
   if (!os) notFound();

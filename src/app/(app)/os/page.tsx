@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatarBRL } from '@/dominio/dinheiro';
 import type { StatusRecebimento } from '@/dominio/comissao';
-import { exigirSessao } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { listarOs } from '@/servidor/os/consultas';
 
 const RUBRICA_STATUS: Record<StatusRecebimento, string> = {
@@ -15,7 +15,7 @@ export default async function PaginaListaOs({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const sessao = await exigirSessao();
+  const sessao = await sessaoDaPagina();
   const { q } = await searchParams;
   const lista = await listarOs({ busca: q });
 

@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { exigirPapel } from '@/servidor/auth';
+import { sessaoDaPagina } from '@/servidor/auth';
 import { listarOsComComissaoDisponivel } from '@/servidor/os/consultas';
 import { FormularioGerarLote } from './FormularioGerarLote';
 
 export default async function PaginaGerarLote() {
-  await exigirPapel('admin');
+  await sessaoDaPagina('admin');
   const osElegiveis = await listarOsComComissaoDisponivel();
 
   return (
