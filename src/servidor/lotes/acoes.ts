@@ -9,7 +9,7 @@ import {
   tratarErroFormulario,
   type EstadoFormulario,
 } from '@/servidor/formularios';
-import { aprovarLote, gerarLote } from './servico';
+import { aprovarLote, cancelarLote, desfazerAprovacaoLote, gerarLote } from './servico';
 
 export async function aprovarLoteAction(
   loteId: string,
@@ -52,4 +52,45 @@ export async function gerarLoteAction(
   revalidatePath('/lotes');
   revalidatePath('/os');
   redirect(`/lotes/${loteId}`);
+}
+
+async function mudarEstadoDoLote(
+  loteId: string,
+  motivo: string,
+  acao: (tx: Parameters<typeof cancelarLote>[0], usuarioId: string) => Promise<void>,
+): Promise<{ erro: string | null }> {
+  try {
+    const sessao = await exigirPapel('admin');
+    await comTransacaoFinanceira((tx) => acao(tx, sessao.userId));
+  } catch (erro) {
+    if (erro instanceof ErroValidacao || erro instanceof ErroPermissao) {
+      return { erro: erro.message };
+    }
+    console.error(erro);
+    return { erro: 'Ocorreu um erro inesperado. Tente novamente.' };
+  }
+
+  revalidatePath('/lotes');
+  revalidatePath(`/lotes/${loteId}`);
+  revalidatePath('/os');
+  revalidatePath('/');
+  return { erro: null };
+}
+
+export async function cancelarLoteAction(
+  loteId: string,
+  motivo: string,
+): Promise<{ erro: string | null }> {
+  return mudarEstadoDoLote(loteId, motivo, (tx, usuarioId) =>
+    cancelarLote(tx, loteId, motivo, usuarioId),
+  );
+}
+
+export async function desfazerAprovacaoAction(
+  loteId: string,
+  motivo: string,
+): Promise<{ erro: string | null }> {
+  return mudarEstadoDoLote(loteId, motivo, (tx, usuarioId) =>
+    desfazerAprovacaoLote(tx, loteId, motivo, usuarioId),
+  );
 }
