@@ -8,6 +8,13 @@ import type { LoteDetalhe } from '@/servidor/lotes/consultas';
 export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 print:px-0 print:py-0">
+      {lote.motivoCancelamento && (
+        <div className="mb-4 border-2 border-erro bg-erro-suave p-3 text-center text-sm font-bold text-erro">
+          LOTE CANCELADO
+          {lote.loteSubstituto ? ` — substituído pelo lote ${lote.loteSubstituto.numero}` : ''}
+        </div>
+      )}
+
       <header className="flex items-start justify-between gap-4 border-b-2 border-texto pb-2.5">
         <p className="text-[10.5px] font-bold uppercase tracking-[0.18em]">
           Controle de Comissão
