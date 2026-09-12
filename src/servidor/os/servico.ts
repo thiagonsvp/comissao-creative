@@ -36,8 +36,11 @@ function ehErroUnicidade(erro: unknown): boolean {
   );
 }
 
-/** Regras de campo iguais no cadastro e na edição. */
-function validarCamposOs(dados: DadosOs): void {
+/** Regras de campo iguais no cadastro e na edição, sem a checagem de soma do
+ * rateio — a edição precisa decidir se essa checagem roda antes de chamá-la
+ * (ver `editarOs`), porque um lote pendente trava percentual e rateio juntos
+ * antes de checar se a soma bate. */
+function validarCamposBasicos(dados: DadosOs): void {
   if (dados.cliente.trim() === '') {
     throw new ErroValidacao('Cliente é obrigatório', 'cliente');
   }
@@ -50,6 +53,11 @@ function validarCamposOs(dados: DadosOs): void {
   if (dados.valor <= 0n) {
     throw new ErroValidacao('Valor deve ser maior que zero', 'valor');
   }
+}
+
+/** Regras de campo iguais no cadastro e na edição. */
+function validarCamposOs(dados: DadosOs): void {
+  validarCamposBasicos(dados);
   validarPesos(dados.rateio, dados.percentualComissao);
 }
 
@@ -110,7 +118,7 @@ export async function editarOs(
   dados: DadosEdicaoOs,
   usuarioId: string,
 ): Promise<void> {
-  validarCamposOs(dados);
+  validarCamposBasicos(dados);
   const numeroNormalizado = normalizarNumeroOs(dados.numeroOs);
 
   const [atual] = await tx`
@@ -130,6 +138,10 @@ export async function editarOs(
 
   const valorMudou = parseDecimal(atual.valor) !== dados.valor;
   const percentualMudou = parsePercentual(atual.percentual_comissao) !== dados.percentualComissao;
+  const rateioMudou =
+    parsePercentual(rateioAtual.rateio_thiago) !== dados.rateio.thiago ||
+    parsePercentual(rateioAtual.rateio_geice) !== dados.rateio.geice ||
+    parsePercentual(rateioAtual.rateio_gabrielle) !== dados.rateio.gabrielle;
 
   if (valorMudou || percentualMudou) {
     const liberadaNova = comissaoLiberada(
@@ -149,15 +161,17 @@ export async function editarOs(
     if (motivo) throw new ErroValidacao(motivo, 'valor');
   }
 
-  const rateioMudou =
-    parsePercentual(rateioAtual.rateio_thiago) !== dados.rateio.thiago ||
-    parsePercentual(rateioAtual.rateio_geice) !== dados.rateio.geice ||
-    parsePercentual(rateioAtual.rateio_gabrielle) !== dados.rateio.gabrielle;
-
-  if (rateioMudou) {
-    const motivo = motivoDeRecusaPorLoteAtivo(situacao.lotes);
-    if (motivo) throw new ErroValidacao(motivo, 'rateio_thiago');
+  if (percentualMudou || rateioMudou) {
+    const motivoTravaLote = motivoDeRecusaPorLoteAtivo(situacao.lotes);
+    if (motivoTravaLote) {
+      throw new ErroValidacao(
+        motivoTravaLote,
+        percentualMudou ? 'percentualComissao' : 'rateio_thiago',
+      );
+    }
   }
+
+  validarPesos(dados.rateio, dados.percentualComissao);
 
   try {
     await tx`

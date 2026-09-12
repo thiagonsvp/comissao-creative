@@ -56,7 +56,8 @@ export function FormularioEditarOs({
             ? `no lote ${numerosDeLote[0]}`
             : `nos lotes ${numerosDeLote.join(', ')}`}
           . Você pode aumentar o valor, mas não reduzi-lo abaixo do necessário para
-          cobrir essa reserva — e o rateio só muda depois de cancelar o lote.
+          cobrir essa reserva — o percentual de comissão e o rateio só mudam depois
+          de cancelar o lote.
         </p>
       )}
 
@@ -110,17 +111,13 @@ export function FormularioEditarOs({
           className={`num ${CLASSE_ENTRADA}`}
         />
       </Campo>
-      <CampoPercentual
-        nome="percentualComissao"
-        id="percentualComissao"
-        rotulo="% de comissão total"
-        valorInicial={paraTexto(iniciais.percentualComissao)}
-        obrigatorio
-        erro={estado.errosPorCampo.percentualComissao}
-      />
-
       {travado && (
         <>
+          <input
+            type="hidden"
+            name="percentualComissao"
+            value={paraTexto(iniciais.percentualComissao)}
+          />
           <input type="hidden" name="rateioThiago" value={paraTexto(iniciais.rateio.thiago)} />
           <input type="hidden" name="rateioGeice" value={paraTexto(iniciais.rateio.geice)} />
           <input
@@ -138,8 +135,21 @@ export function FormularioEditarOs({
         }`}
       >
         <legend className="rotulo px-1">
-          Rateio {travado ? '· travado por lote pendente' : '· precisa somar o percentual total'}
+          Percentual e rateio{' '}
+          {travado
+            ? '· travados por lote pendente'
+            : '· o rateio precisa somar o percentual total'}
         </legend>
+        <div className="mb-3">
+          <CampoPercentual
+            nome="percentualComissao"
+            id="percentualComissao"
+            rotulo="% de comissão total"
+            valorInicial={paraTexto(iniciais.percentualComissao)}
+            obrigatorio
+            erro={estado.errosPorCampo.percentualComissao}
+          />
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <CampoPercentual
             nome="rateioThiago"
