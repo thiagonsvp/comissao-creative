@@ -1,5 +1,5 @@
 import { formatarBRL } from '@/dominio/dinheiro';
 
-export function Moeda({ valor, classeName }: { valor: bigint; classeName?: string }) {
-  return <span className={classeName}>{formatarBRL(valor)}</span>;
+export function Moeda({ valor, className }: { valor: bigint; className?: string }) {
+  return <span className={className ? `num ${className}` : 'num'}>{formatarBRL(valor)}</span>;
 }

@@ -1,16 +1,20 @@
 'use client';
 
-import Link from 'next/link';
+import { BotaoLink } from '@/componentes/Botao';
+import { EstadoVazio } from '@/componentes/EstadoVazio';
 
 export default function ErroApp({ error }: { error: Error & { digest?: string } }) {
   return (
-    <main className="p-6">
-      <p className="mb-4 text-red-600">
-        {error.message || 'Ocorreu um erro inesperado.'}
-      </p>
-      <Link href="/os" className="text-sm text-blue-600 underline">
-        Voltar para as OS
-      </Link>
+    <main>
+      <EstadoVazio
+        titulo="Alguma coisa deu errado"
+        descricao={error.message || 'Ocorreu um erro inesperado. Tente novamente.'}
+        acao={
+          <BotaoLink href="/" variante="secundario">
+            Voltar para o início
+          </BotaoLink>
+        }
+      />
     </main>
   );
 }

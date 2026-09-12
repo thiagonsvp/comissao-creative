@@ -1,54 +1,85 @@
 import Link from 'next/link';
+import { BotaoLink } from '@/componentes/Botao';
+import { CartaoLista } from '@/componentes/CartaoLista';
+import { EstadoVazio } from '@/componentes/EstadoVazio';
+import { Moeda } from '@/componentes/Moeda';
+import { Selo, seloDeEstadoLote } from '@/componentes/Selo';
 import { formatarDataBr } from '@/dominio/datas';
-import { formatarBRL } from '@/dominio/dinheiro';
 import { sessaoDaPagina } from '@/servidor/auth';
 import { listarLotes } from '@/servidor/lotes/consultas';
-import { RUBRICA_ESTADO } from './rubricas';
 
 export default async function PaginaListaLotes() {
   const sessao = await sessaoDaPagina();
   const lotes = await listarLotes();
+  const ehAdmin = sessao.papel === 'admin';
 
   return (
-    <main className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Lotes enviados ao financeiro</h1>
-        {sessao.papel === 'admin' && (
-          <Link href="/lotes/gerar" className="rounded bg-blue-600 px-4 py-2 text-white">
-            Gerar novo lote
-          </Link>
-        )}
+    <main>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h1 className="text-[1.375rem] font-bold tracking-tight md:text-2xl">
+          Lotes enviados ao financeiro
+        </h1>
+        {ehAdmin && <BotaoLink href="/lotes/gerar">Gerar novo lote</BotaoLink>}
       </div>
 
       {lotes.length === 0 ? (
-        <p className="mt-4 text-gray-500">Nenhum lote gerado ainda.</p>
+        <EstadoVazio
+          titulo="Nenhum lote gerado ainda"
+          descricao="Um lote reúne as comissões já liberadas por pagamento de cliente e é o documento que vai para o financeiro."
+          acao={ehAdmin ? <BotaoLink href="/lotes/gerar">Gerar o primeiro lote</BotaoLink> : undefined}
+        />
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left">
-              <th scope="col" className="py-2">
-                Número
-              </th>
-              <th scope="col">Data de envio</th>
-              <th scope="col">Total</th>
-              <th scope="col">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <ul className="flex flex-col gap-2.5 md:hidden">
             {lotes.map((lote) => (
-              <tr key={lote.id} className="border-b">
-                <td className="py-2">
-                  <Link href={`/lotes/${lote.id}`} className="text-blue-600 underline">
-                    Lote {lote.numero}
-                  </Link>
-                </td>
-                <td>{lote.dataEnvio ? formatarDataBr(lote.dataEnvio) : '—'}</td>
-                <td>{formatarBRL(lote.valorTotal)}</td>
-                <td>{RUBRICA_ESTADO[lote.estadoConferencia] ?? lote.estadoConferencia}</td>
-              </tr>
+              <li key={lote.id}>
+                <CartaoLista
+                  href={`/lotes/${lote.id}`}
+                  titulo={`Lote ${lote.numero}`}
+                  selo={seloDeEstadoLote(lote.estadoConferencia)}
+                  descricao={
+                    lote.dataEnvio ? `Enviado em ${formatarDataBr(lote.dataEnvio)}` : 'Sem data de envio'
+                  }
+                  rotuloValor="Total"
+                  valor={lote.valorTotal}
+                />
+              </li>
             ))}
-          </tbody>
-        </table>
+          </ul>
+
+          <table className="tabela hidden md:table">
+            <thead>
+              <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Data de envio</th>
+                <th scope="col" className="direita">Total</th>
+                <th scope="col">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lotes.map((lote) => (
+                <tr key={lote.id}>
+                  <td>
+                    <Link href={`/lotes/${lote.id}`} className="num font-bold text-destaque underline">
+                      Lote {lote.numero}
+                    </Link>
+                  </td>
+                  <td className="num">
+                    {lote.dataEnvio ? formatarDataBr(lote.dataEnvio) : '—'}
+                  </td>
+                  <td className="direita font-semibold">
+                    <Moeda valor={lote.valorTotal} />
+                  </td>
+                  <td>
+                    <Selo tom={seloDeEstadoLote(lote.estadoConferencia).tom}>
+                      {seloDeEstadoLote(lote.estadoConferencia).rotulo}
+                    </Selo>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </main>
   );

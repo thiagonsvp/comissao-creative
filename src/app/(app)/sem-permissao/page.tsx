@@ -1,15 +1,18 @@
-import Link from 'next/link';
+import { BotaoLink } from '@/componentes/Botao';
+import { EstadoVazio } from '@/componentes/EstadoVazio';
 
 export default function PaginaSemPermissao() {
   return (
-    <main className="p-6">
-      <h1 className="mb-2 text-xl font-semibold">Acesso não autorizado</h1>
-      <p className="mb-4 text-gray-600">
-        Seu usuário não tem permissão para abrir esta tela.
-      </p>
-      <Link href="/os" className="text-sm text-blue-600 underline">
-        Voltar para as OS
-      </Link>
+    <main>
+      <EstadoVazio
+        titulo="Acesso não autorizado"
+        descricao="Seu usuário não tem permissão para abrir esta tela."
+        acao={
+          <BotaoLink href="/os" variante="secundario">
+            Voltar para as OS
+          </BotaoLink>
+        }
+      />
     </main>
   );
 }

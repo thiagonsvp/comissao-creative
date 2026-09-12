@@ -6,7 +6,7 @@ import { cadastrarOs } from '@/servidor/os/servico';
 import { registrarBaixaCliente } from '@/servidor/baixas/servico';
 import { aprovarLote, gerarLote } from '@/servidor/lotes/servico';
 import { listarLotes, obterLotePorId } from '@/servidor/lotes/consultas';
-import { criarUsuarioTeste, numeroOsTeste } from './ajuda';
+import { criarUsuarioTeste, espiaoSql, numeroOsTeste } from './ajuda';
 
 // app_writer não tem privilégio de DELETE: cada caso monta o cenário dentro da
 // transação e desfaz com rollback.
@@ -58,7 +58,17 @@ describe('consultas e conferência de lote', () => {
 
         const semRateio = await obterLotePorId(loteId, false, tx);
         expect(semRateio?.observacao).toBe('lote de teste');
+        expect(semRateio).toMatchObject({
+          motivoCancelamento: null,
+          loteOrigem: null,
+          loteSubstituto: null,
+        });
         expect(semRateio?.itens).toHaveLength(1);
+        expect(semRateio?.itens[0]).toMatchObject({
+          valorOsSnapshot: 1_000_000n,
+          totalPagoClienteSnapshot: 1_000_000n,
+          comissaoComprometidaAnteriorSnapshot: 0n,
+        });
         expect(semRateio?.itens[0]).toMatchObject({
           ordem: 1,
           clienteSnapshot: 'Cliente X',
@@ -75,6 +85,23 @@ describe('consultas e conferência de lote', () => {
         });
 
         expect(await obterLotePorId('11111111-1111-1111-1111-111111111111', false, tx)).toBeNull();
+
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
+  it('sem rateio, nenhum SQL emitido menciona a tabela de rateio do item de lote', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const { loteId } = await loteQuitado(tx);
+
+        const { exec, consultas } = espiaoSql(tx);
+        await obterLotePorId(loteId, false, exec);
+
+        expect(consultas.length).toBeGreaterThan(0);
+        const sqlEmitido = consultas.join('\n');
+        expect(sqlEmitido).not.toMatch(/lote_item_rateio|rateio_thiago|rateio_geice|rateio_gabrielle/i);
 
         throw ROLLBACK_TESTE;
       }),

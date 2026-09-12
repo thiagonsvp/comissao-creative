@@ -10,7 +10,7 @@ export default async function PaginaImprimirLote({
 }) {
   await sessaoDaPagina();
   const { id } = await params;
-  // Sempre `false`: o documento do financeiro nunca carrega nem renderiza
+  // Sempre `false`: o relatório do financeiro nunca carrega nem renderiza
   // rateio, nem quando quem abre é admin.
   const lote = await obterLotePorId(id, false);
   if (!lote) notFound();

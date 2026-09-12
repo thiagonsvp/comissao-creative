@@ -30,11 +30,19 @@ export interface OsDetalhe extends OsListada {
   percentualComissao: Percentual;
   tipoPagamento: string;
   dataVenda: string;
+  observacao: string | null;
   totalPagoCliente: Centavos;
   comissaoTotal: Centavos;
   primeiroEnvioEm: string | null;
   rateio: PorPessoa | null;
-  baixas: { id: string; data: string; valor: Centavos }[];
+  baixas: {
+    id: string;
+    data: string;
+    valor: Centavos;
+    tipo: 'recebimento' | 'estorno';
+    motivo: string | null;
+    estornado: Centavos;
+  }[];
 }
 
 interface LinhaOs {
@@ -46,6 +54,7 @@ interface LinhaOs {
   percentual_comissao: string;
   tipo_pagamento: string;
   data_venda: string;
+  observacao: string | null;
   primeiro_envio_em: Date | null;
   total_pago: string;
   comprometido: string;
@@ -64,6 +73,7 @@ function projecaoOs(exec: Executor) {
   return exec`
     o.id, o.numero_os, o.cliente, o.produto, o.valor, o.percentual_comissao,
     o.tipo_pagamento, to_char(o.data_venda, 'YYYY-MM-DD') as data_venda,
+    o.observacao,
     o.primeiro_envio_em,
     (
       select coalesce(sum(case when b.tipo = 'estorno' then -b.valor else b.valor end), 0)
@@ -152,10 +162,16 @@ export async function obterOsPorId(
   }
 
   const baixas = await exec`
-    select id, to_char(data_efetiva, 'YYYY-MM-DD') as data_efetiva, valor
-    from public.baixa_cliente
-    where os_id = ${osId}
-    order by data_efetiva, criado_em
+    select b.id, to_char(b.data_efetiva, 'YYYY-MM-DD') as data_efetiva,
+      b.valor, b.tipo, b.observacao,
+      (
+        select coalesce(sum(e.valor), 0)
+        from public.baixa_cliente e
+        where e.baixa_origem_id = b.id and e.tipo = 'estorno'
+      ) as estornado
+    from public.baixa_cliente b
+    where b.os_id = ${osId}
+    order by b.data_efetiva, b.criado_em
   `;
 
   const base = paraListada(linha);
@@ -165,6 +181,7 @@ export async function obterOsPorId(
     percentualComissao: percentual,
     tipoPagamento: linha.tipo_pagamento,
     dataVenda: linha.data_venda,
+    observacao: linha.observacao,
     totalPagoCliente: parseDecimal(linha.total_pago),
     comissaoTotal: calcularComissaoTotal(base.valor, percentual),
     primeiroEnvioEm: linha.primeiro_envio_em ? linha.primeiro_envio_em.toISOString() : null,
@@ -173,6 +190,9 @@ export async function obterOsPorId(
       id: b.id,
       data: b.data_efetiva,
       valor: parseDecimal(b.valor),
+      tipo: b.tipo as 'recebimento' | 'estorno',
+      motivo: b.observacao,
+      estornado: parseDecimal(b.estornado),
     })),
   };
 }
