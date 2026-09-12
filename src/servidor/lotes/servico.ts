@@ -20,6 +20,8 @@ import { registrarAuditoria } from '@/servidor/auditoria';
 export interface DadosGerarLote {
   osIds: string[];
   observacao: string | null;
+  /** Preenchido quando este lote substitui um lote cancelado. */
+  loteOrigemId?: string;
 }
 
 export interface ResultadoLote {
@@ -150,10 +152,11 @@ export async function gerarLote(
   const [lote] = await tx`
     insert into public.lote_financeiro
       (estado_conferencia, data_envio, enviado_em, enviado_por,
-       valor_total_original, observacao, criado_por, atualizado_por)
+       valor_total_original, observacao, lote_origem_id, criado_por, atualizado_por)
     values (
       'enviado', ${dataEnvio}, now(), ${usuarioId},
-      ${paraDecimalDb(valorTotal)}, ${dados.observacao}, ${usuarioId}, ${usuarioId}
+      ${paraDecimalDb(valorTotal)}, ${dados.observacao},
+      ${dados.loteOrigemId ?? null}, ${usuarioId}, ${usuarioId}
     )
     returning id, numero
   `;
@@ -212,5 +215,99 @@ export async function aprovarLote(
     entidadeId: loteId,
     acao: 'aprovar',
     responsavelId: usuarioId,
+  });
+}
+
+/**
+ * Cancelar não apaga nada: o lote continua existindo, marcado como cancelado,
+ * e os itens permanecem. A liberação das reservas é automática — todo cálculo
+ * de comissão comprometida já ignora lotes cancelados.
+ */
+export async function cancelarLote(
+  tx: postgres.TransactionSql,
+  loteId: string,
+  motivo: string,
+  usuarioId: string,
+): Promise<void> {
+  const motivoLimpo = motivo.trim();
+  if (motivoLimpo === '') {
+    throw new ErroValidacao('O motivo do cancelamento é obrigatório', 'motivo');
+  }
+
+  const [lote] = await tx`
+    select estado_conferencia from public.lote_financeiro
+    where id = ${loteId} for update
+  `;
+  if (!lote) throw new ErroValidacao('Lote não encontrado');
+  if (lote.estado_conferencia !== 'enviado') {
+    throw new ErroValidacao(
+      lote.estado_conferencia === 'aprovado'
+        ? 'Este lote já foi aprovado. Desfaça a aprovação antes de cancelar.'
+        : 'Só é possível cancelar um lote que está aguardando conferência.',
+    );
+  }
+
+  await tx`
+    update public.lote_financeiro
+    set estado_conferencia = 'cancelado',
+        motivo_cancelamento = ${motivoLimpo},
+        versao = versao + 1,
+        atualizado_por = ${usuarioId}
+    where id = ${loteId}
+  `;
+
+  await registrarAuditoria(tx, {
+    entidade: 'lote_financeiro',
+    entidadeId: loteId,
+    acao: 'cancelar',
+    responsavelId: usuarioId,
+    motivo: motivoLimpo,
+    valoresAnteriores: { estadoConferencia: lote.estado_conferencia },
+    valoresNovos: { estadoConferencia: 'cancelado' },
+  });
+}
+
+/**
+ * Aprovar é, no fluxo do usuário, o registro de que o dinheiro entrou. Desfazer
+ * existe para que um clique errado não vire um beco sem saída.
+ */
+export async function desfazerAprovacaoLote(
+  tx: postgres.TransactionSql,
+  loteId: string,
+  motivo: string,
+  usuarioId: string,
+): Promise<void> {
+  const motivoLimpo = motivo.trim();
+  if (motivoLimpo === '') {
+    throw new ErroValidacao('O motivo é obrigatório', 'motivo');
+  }
+
+  const [lote] = await tx`
+    select estado_conferencia, aprovado_em from public.lote_financeiro
+    where id = ${loteId} for update
+  `;
+  if (!lote) throw new ErroValidacao('Lote não encontrado');
+  if (lote.estado_conferencia !== 'aprovado') {
+    throw new ErroValidacao('Só é possível desfazer a aprovação de um lote aprovado.');
+  }
+
+  await tx`
+    update public.lote_financeiro
+    set estado_conferencia = 'enviado',
+        aprovado_em = null,
+        aprovado_por = null,
+        versao = versao + 1,
+        atualizado_por = ${usuarioId}
+    where id = ${loteId}
+  `;
+
+  await registrarAuditoria(tx, {
+    entidade: 'lote_financeiro',
+    entidadeId: loteId,
+    acao: 'desfazer_aprovacao',
+    responsavelId: usuarioId,
+    motivo: motivoLimpo,
+    valoresAnteriores: { estadoConferencia: 'aprovado', aprovadoEm: lote.aprovado_em },
+    valoresNovos: { estadoConferencia: 'enviado' },
   });
 }
