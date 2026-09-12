@@ -4,7 +4,7 @@ import { ErroValidacao } from '@/dominio/erros';
 import { comTransacaoFinanceira, sql } from '@/servidor/db';
 import { cadastrarOs } from '@/servidor/os/servico';
 import { registrarBaixaCliente } from '@/servidor/baixas/servico';
-import { aprovarLote, gerarLote } from '@/servidor/lotes/servico';
+import { aprovarLote, editarDatasLote, excluirLote, gerarLote } from '@/servidor/lotes/servico';
 import { listarLotes, obterLotePorId } from '@/servidor/lotes/consultas';
 import { criarUsuarioTeste, espiaoSql, numeroOsTeste } from './ajuda';
 
@@ -135,6 +135,32 @@ describe('consultas e conferência de lote', () => {
         `;
         expect(auditoria).toBeTruthy();
         expect(auditoria.data_efetiva).toBe('2026-09-04');
+
+        await editarDatasLote(
+          tx,
+          loteId,
+          { dataEnvio: '2026-08-30', dataAprovacao: '2026-09-01' },
+          usuario.id,
+        );
+        const [datasEditadas] = await tx`
+          select to_char(data_envio, 'YYYY-MM-DD') as data_envio,
+            to_char(aprovado_em at time zone 'America/Sao_Paulo', 'YYYY-MM-DD') as data_aprovacao
+          from public.lote_financeiro where id = ${loteId}
+        `;
+        expect(datasEditadas).toMatchObject({
+          data_envio: '2026-08-30',
+          data_aprovacao: '2026-09-01',
+        });
+
+        await expect(
+          editarDatasLote(
+            tx,
+            loteId,
+            { dataEnvio: '2099-01-01', dataAprovacao: '2026-09-01' },
+            usuario.id,
+          ),
+        ).rejects.toThrow(/futura/i);
+        await expect(excluirLote(tx, loteId, usuario.id)).rejects.toThrow(/aprovação/i);
 
         await expect(aprovarLote(tx, loteId, usuario.id)).rejects.toThrow(ErroValidacao);
 

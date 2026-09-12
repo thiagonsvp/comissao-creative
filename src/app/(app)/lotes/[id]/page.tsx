@@ -4,7 +4,7 @@ import { BotaoLink } from '@/componentes/Botao';
 import { CartaoValor } from '@/componentes/CartaoValor';
 import { Moeda } from '@/componentes/Moeda';
 import { Selo, seloDeEstadoLote } from '@/componentes/Selo';
-import { formatarDataBr } from '@/dominio/datas';
+import { formatarDataBr, hojeNegocio } from '@/dominio/datas';
 import { sessaoDaPagina } from '@/servidor/auth';
 import { obterLotePorId } from '@/servidor/lotes/consultas';
 import { AcoesLote } from './AcoesLote';
@@ -89,7 +89,12 @@ export default async function PaginaDetalheLote({
 
       {ehAdmin && (
         <div className="mb-6">
-          <AcoesLote loteId={lote.id} estadoConferencia={lote.estadoConferencia} />
+          <AcoesLote
+            loteId={lote.id}
+            estadoConferencia={lote.estadoConferencia}
+            dataEnvioInicial={lote.dataEnvio ?? hojeNegocio()}
+            dataAprovacaoInicial={lote.dataAprovacao}
+          />
         </div>
       )}
 

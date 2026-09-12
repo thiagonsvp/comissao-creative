@@ -4,10 +4,11 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { validarDataIso } from '@/dominio/datas';
 import { parseDecimal, parsePercentual } from '@/dominio/dinheiro';
+import { ErroPermissao, ErroValidacao } from '@/dominio/erros';
 import { exigirPapel } from '@/servidor/auth';
 import { comTransacaoFinanceira } from '@/servidor/db';
 import { tratarErroFormulario, type EstadoFormulario } from '@/servidor/formularios';
-import { cadastrarOs, editarOs } from './servico';
+import { cadastrarOs, editarOs, excluirOs } from './servico';
 
 export async function cadastrarOsAction(
   _estadoAnterior: EstadoFormulario,
@@ -76,4 +77,21 @@ export async function editarOsAction(
   revalidatePath(`/os/${osId}`);
   revalidatePath('/');
   redirect(`/os/${osId}`);
+}
+
+export async function excluirOsAction(osId: string): Promise<{ erro: string | null }> {
+  try {
+    const sessao = await exigirPapel('admin');
+    await comTransacaoFinanceira((tx) => excluirOs(tx, osId, sessao.userId));
+  } catch (erro) {
+    if (erro instanceof ErroValidacao || erro instanceof ErroPermissao) {
+      return { erro: erro.message };
+    }
+    console.error(erro);
+    return { erro: 'Ocorreu um erro inesperado. Tente novamente.' };
+  }
+
+  revalidatePath('/os');
+  revalidatePath('/');
+  return { erro: null };
 }

@@ -30,6 +30,11 @@ export interface ResultadoLote {
   valorTotal: Centavos;
 }
 
+export interface DatasLote {
+  dataEnvio: string;
+  dataAprovacao: string | null;
+}
+
 /**
  * Carrega tudo que o cálculo de lote precisa, com `for update` nas linhas de
  * `os` para que dois envios concorrentes não reservem o mesmo trecho. As
@@ -322,4 +327,112 @@ export async function desfazerAprovacaoLote(
     },
     valoresNovos: { estadoConferencia: 'enviado' },
   });
+}
+
+export async function editarDatasLote(
+  tx: postgres.TransactionSql,
+  loteId: string,
+  datas: DatasLote,
+  usuarioId: string,
+): Promise<void> {
+  const dataEnvio = dataNaoFutura(datas.dataEnvio, 'dataEnvio');
+  const [lote] = await tx`
+    select estado_conferencia,
+      to_char(data_envio, 'YYYY-MM-DD') as data_envio,
+      to_char(aprovado_em at time zone 'America/Sao_Paulo', 'YYYY-MM-DD') as data_aprovacao
+    from public.lote_financeiro
+    where id = ${loteId}
+    for update
+  `;
+  if (!lote) throw new ErroValidacao('Lote não encontrado', 'loteId');
+
+  let dataAprovacao: string | null = null;
+  if (lote.estado_conferencia === 'aprovado') {
+    if (!datas.dataAprovacao) {
+      throw new ErroValidacao('A data de aprovação é obrigatória', 'dataAprovacao');
+    }
+    dataAprovacao = dataNaoFutura(datas.dataAprovacao, 'dataAprovacao');
+  }
+
+  await tx`
+    update public.lote_financeiro
+    set data_envio = ${dataEnvio},
+        aprovado_em = case
+          when estado_conferencia = 'aprovado' then
+            ((${dataAprovacao}::date + time '12:00') at time zone 'America/Sao_Paulo')
+          else aprovado_em
+        end,
+        versao = versao + 1,
+        atualizado_por = ${usuarioId}
+    where id = ${loteId}
+  `;
+
+  await registrarAuditoria(tx, {
+    entidade: 'lote_financeiro',
+    entidadeId: loteId,
+    acao: 'editar_datas',
+    responsavelId: usuarioId,
+    dataEfetiva: dataAprovacao ?? dataEnvio,
+    valoresAnteriores: {
+      dataEnvio: lote.data_envio,
+      dataAprovacao: lote.data_aprovacao,
+    },
+    valoresNovos: { dataEnvio, dataAprovacao },
+  });
+}
+
+/** Remove um lote ainda sem aprovação e todos os seus snapshots internos. */
+export async function excluirLote(
+  tx: postgres.TransactionSql,
+  loteId: string,
+  usuarioId: string,
+): Promise<void> {
+  const [lote] = await tx`
+    select numero, estado_conferencia, valor_total_original,
+      to_char(data_envio, 'YYYY-MM-DD') as data_envio
+    from public.lote_financeiro
+    where id = ${loteId}
+    for update
+  `;
+  if (!lote) throw new ErroValidacao('Lote não encontrado', 'loteId');
+  if (lote.estado_conferencia === 'aprovado') {
+    throw new ErroValidacao(
+      'Desfaça a aprovação antes de excluir este lote.',
+      'loteId',
+    );
+  }
+
+  const [vinculo] = await tx`
+    select exists(
+      select 1 from public.lote_financeiro where lote_origem_id = ${loteId}
+    ) as tem_substituto
+  `;
+  if (vinculo.tem_substituto) {
+    throw new ErroValidacao(
+      'Este lote possui um lote substituto e não pode ser excluído.',
+      'loteId',
+    );
+  }
+
+  await registrarAuditoria(tx, {
+    entidade: 'lote_financeiro',
+    entidadeId: loteId,
+    acao: 'excluir',
+    responsavelId: usuarioId,
+    dataEfetiva: lote.data_envio,
+    valoresAnteriores: {
+      numero: Number(lote.numero),
+      estadoConferencia: lote.estado_conferencia,
+      valorTotal: parseDecimal(lote.valor_total_original),
+      dataEnvio: lote.data_envio,
+    },
+  });
+
+  await tx`
+    delete from interno.lote_item_rateio r
+    using public.lote_item li
+    where r.lote_item_id = li.id and li.lote_id = ${loteId}
+  `;
+  await tx`delete from public.lote_item where lote_id = ${loteId}`;
+  await tx`delete from public.lote_financeiro where id = ${loteId}`;
 }

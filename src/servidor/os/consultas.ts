@@ -15,6 +15,15 @@ import { sql, type Executor } from '@/servidor/db';
 
 export type { Executor };
 
+export type FiltroStatusOs = 'pendentes' | StatusRecebimento | 'todas';
+
+export interface FiltrosOs {
+  busca?: string;
+  status?: FiltroStatusOs;
+  dataInicio?: string;
+  dataFim?: string;
+}
+
 export interface OsListada {
   id: string;
   numeroOs: string;
@@ -112,25 +121,32 @@ function paraListada(linha: LinhaOs): OsListada {
 }
 
 export async function listarOs(
-  filtros: { busca?: string } = {},
+  filtros: FiltrosOs = {},
   exec: Executor = sql,
 ): Promise<OsListada[]> {
-  const busca = filtros.busca?.trim();
-  const linhas: LinhaOs[] = busca
-    ? await exec`
-        select ${projecaoOs(exec)}
-        from public.os o
-        where o.numero_os_normalizado like ${`%${busca.toUpperCase()}%`}
-           or o.cliente ilike ${`%${busca}%`}
-           or o.produto ilike ${`%${busca}%`}
-        order by o.data_venda desc, o.numero_os_normalizado
-      `
-    : await exec`
-        select ${projecaoOs(exec)}
-        from public.os o
-        order by o.data_venda desc, o.numero_os_normalizado
-      `;
-  return linhas.map(paraListada);
+  const busca = filtros.busca?.trim() || null;
+  const dataInicio = filtros.dataInicio || null;
+  const dataFim = filtros.dataFim || null;
+  const linhas = (await exec`
+    select ${projecaoOs(exec)}
+    from public.os o
+    where (
+      ${busca}::text is null
+      or o.numero_os_normalizado like ${busca ? `%${busca.toUpperCase()}%` : null}
+      or o.cliente ilike ${busca ? `%${busca}%` : null}
+      or o.produto ilike ${busca ? `%${busca}%` : null}
+    )
+      and (${dataInicio}::date is null or o.data_venda >= ${dataInicio}::date)
+      and (${dataFim}::date is null or o.data_venda <= ${dataFim}::date)
+    order by o.data_venda desc, o.numero_os_normalizado
+  `) as unknown as LinhaOs[];
+
+  const lista = linhas.map(paraListada);
+  if (!filtros.status || filtros.status === 'todas') return lista;
+  if (filtros.status === 'pendentes') {
+    return lista.filter((os) => os.status !== 'quitada');
+  }
+  return lista.filter((os) => os.status === filtros.status);
 }
 
 export async function obterOsPorId(

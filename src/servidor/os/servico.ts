@@ -228,3 +228,61 @@ export async function editarOs(
     valoresNovos: dados,
   });
 }
+
+/** Exclui apenas cadastros sem qualquer movimento financeiro associado. */
+export async function excluirOs(
+  tx: postgres.TransactionSql,
+  osId: string,
+  usuarioId: string,
+): Promise<void> {
+  const [os] = await tx`
+    select numero_os, cliente, produto, valor,
+      to_char(data_venda, 'YYYY-MM-DD') as data_venda
+    from public.os
+    where id = ${osId}
+    for update
+  `;
+  if (!os) throw new ErroValidacao('OS não encontrada', 'osId');
+
+  const [dependencias] = await tx`
+    select
+      exists(select 1 from public.baixa_cliente where os_id = ${osId}) as tem_baixas,
+      exists(select 1 from public.lote_item where os_id = ${osId}) as tem_lotes,
+      exists(select 1 from public.os where os_origem_id = ${osId}) as tem_renegociacao
+  `;
+  if (dependencias.tem_baixas) {
+    throw new ErroValidacao(
+      'Esta OS possui pagamentos ou estornos e não pode ser excluída.',
+      'osId',
+    );
+  }
+  if (dependencias.tem_lotes) {
+    throw new ErroValidacao(
+      'Esta OS está vinculada a um lote. Exclua o lote primeiro.',
+      'osId',
+    );
+  }
+  if (dependencias.tem_renegociacao) {
+    throw new ErroValidacao(
+      'Esta OS possui outra OS vinculada e não pode ser excluída.',
+      'osId',
+    );
+  }
+
+  await registrarAuditoria(tx, {
+    entidade: 'os',
+    entidadeId: osId,
+    acao: 'excluir',
+    responsavelId: usuarioId,
+    valoresAnteriores: {
+      numeroOs: os.numero_os,
+      cliente: os.cliente,
+      produto: os.produto,
+      valor: parseDecimal(os.valor),
+      dataVenda: os.data_venda,
+    },
+  });
+
+  await tx`delete from interno.os_rateio where os_id = ${osId}`;
+  await tx`delete from public.os where id = ${osId}`;
+}

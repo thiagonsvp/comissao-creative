@@ -9,7 +9,14 @@ import {
   tratarErroFormulario,
   type EstadoFormulario,
 } from '@/servidor/formularios';
-import { aprovarLote, cancelarLote, desfazerAprovacaoLote, gerarLote } from './servico';
+import {
+  aprovarLote,
+  cancelarLote,
+  desfazerAprovacaoLote,
+  editarDatasLote,
+  excluirLote,
+  gerarLote,
+} from './servico';
 
 export async function aprovarLoteAction(
   loteId: string,
@@ -95,5 +102,23 @@ export async function desfazerAprovacaoAction(
 ): Promise<{ erro: string | null }> {
   return mudarEstadoDoLote(loteId, (tx, usuarioId) =>
     desfazerAprovacaoLote(tx, loteId, motivo, usuarioId),
+  );
+}
+
+export async function editarDatasLoteAction(
+  loteId: string,
+  dataEnvio: string,
+  dataAprovacao: string | null,
+): Promise<{ erro: string | null }> {
+  return mudarEstadoDoLote(loteId, (tx, usuarioId) =>
+    editarDatasLote(tx, loteId, { dataEnvio, dataAprovacao }, usuarioId),
+  );
+}
+
+export async function excluirLoteAction(
+  loteId: string,
+): Promise<{ erro: string | null }> {
+  return mudarEstadoDoLote(loteId, (tx, usuarioId) =>
+    excluirLote(tx, loteId, usuarioId),
   );
 }

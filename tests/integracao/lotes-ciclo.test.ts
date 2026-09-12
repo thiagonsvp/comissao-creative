@@ -9,6 +9,7 @@ import {
   aprovarLote,
   cancelarLote,
   desfazerAprovacaoLote,
+  excluirLote,
   gerarLote,
 } from '@/servidor/lotes/servico';
 import { obterOsPorId } from '@/servidor/os/consultas';
@@ -118,6 +119,31 @@ describe('ciclo de vida do lote', () => {
           desfazerAprovacaoLote(tx, lote.loteId, 'De novo', usuario.id),
         ).rejects.toThrow(ErroValidacao);
 
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
+  it('exclui lote não aprovado, seus itens e libera a comissão', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const { osId, lote } = await osComLote(tx);
+        const [item] = await tx`
+          select id from public.lote_item where lote_id = ${lote.loteId}
+        `;
+
+        await excluirLote(tx, lote.loteId, usuario.id);
+
+        expect(await tx`select id from public.lote_financeiro where id = ${lote.loteId}`).toHaveLength(0);
+        expect(await tx`select id from public.lote_item where lote_id = ${lote.loteId}`).toHaveLength(0);
+        expect(await tx`select lote_item_id from interno.lote_item_rateio where lote_item_id = ${item.id}`).toHaveLength(0);
+        expect((await obterOsPorId(osId, false, tx))?.comissaoDisponivel).toBe(35_000n);
+
+        const [auditoria] = await tx`
+          select acao from interno.auditoria_evento
+          where entidade = 'lote_financeiro' and entidade_id = ${lote.loteId} and acao = 'excluir'
+        `;
+        expect(auditoria.acao).toBe('excluir');
         throw ROLLBACK_TESTE;
       }),
     ).rejects.toBe(ROLLBACK_TESTE);

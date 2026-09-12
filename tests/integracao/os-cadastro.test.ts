@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ErroValidacao } from '@/dominio/erros';
 import { comTransacaoFinanceira, sql } from '@/servidor/db';
-import { cadastrarOs, type DadosOs } from '@/servidor/os/servico';
+import { cadastrarOs, excluirOs, type DadosOs } from '@/servidor/os/servico';
 import { criarUsuarioTeste, numeroOsTeste } from './ajuda';
 
 const ROLLBACK_TESTE = new Error('ROLLBACK_TESTE');
@@ -73,6 +73,38 @@ describe('cadastrarOs', () => {
         ),
       ),
     ).rejects.toThrow(ErroValidacao);
+  });
+
+  it('exclui uma OS sem movimentos e preserva a auditoria', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const { osId } = await cadastrarOs(tx, dados(), usuario.id);
+        await excluirOs(tx, osId, usuario.id);
+
+        expect(await tx`select id from public.os where id = ${osId}`).toHaveLength(0);
+        expect(await tx`select os_id from interno.os_rateio where os_id = ${osId}`).toHaveLength(0);
+        const [auditoria] = await tx`
+          select acao from interno.auditoria_evento
+          where entidade = 'os' and entidade_id = ${osId} and acao = 'excluir'
+        `;
+        expect(auditoria.acao).toBe('excluir');
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
+  it('não exclui OS que possui pagamento', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const { osId } = await cadastrarOs(tx, dados(), usuario.id);
+        await tx`
+          insert into public.baixa_cliente (os_id, data_efetiva, valor, criado_por)
+          values (${osId}, '2026-09-05', '100.00', ${usuario.id})
+        `;
+        await expect(excluirOs(tx, osId, usuario.id)).rejects.toThrow(/pagamentos/i);
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
   });
 
   afterAll(async () => {

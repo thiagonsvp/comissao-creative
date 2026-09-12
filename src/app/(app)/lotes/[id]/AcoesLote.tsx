@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Botao } from '@/componentes/Botao';
 import { CLASSE_ENTRADA } from '@/componentes/Campo';
@@ -8,10 +9,12 @@ import {
   aprovarLoteAction,
   cancelarLoteAction,
   desfazerAprovacaoAction,
+  editarDatasLoteAction,
+  excluirLoteAction,
 } from '@/servidor/lotes/acoes';
 
-type AcaoAberta = 'aprovar' | 'cancelar' | 'desfazer';
-type ComMotivo = Exclude<AcaoAberta, 'aprovar'>;
+type AcaoAberta = 'aprovar' | 'cancelar' | 'desfazer' | 'editarDatas' | 'excluir';
+type ComMotivo = Extract<AcaoAberta, 'cancelar' | 'desfazer'>;
 
 const TEXTOS: Record<ComMotivo, { botao: string; titulo: string; confirmar: string }> = {
   cancelar: {
@@ -31,14 +34,20 @@ const TEXTOS: Record<ComMotivo, { botao: string; titulo: string; confirmar: stri
 export function AcoesLote({
   loteId,
   estadoConferencia,
+  dataEnvioInicial,
+  dataAprovacaoInicial,
 }: {
   loteId: string;
   estadoConferencia: string;
+  dataEnvioInicial: string;
+  dataAprovacaoInicial: string | null;
 }) {
+  const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [aberto, setAberto] = useState<AcaoAberta | null>(null);
   const [motivo, setMotivo] = useState('');
-  const [dataAprovacao, setDataAprovacao] = useState(hojeNegocio());
+  const [dataEnvio, setDataEnvio] = useState(dataEnvioInicial);
+  const [dataAprovacao, setDataAprovacao] = useState(dataAprovacaoInicial ?? hojeNegocio());
   const [pendente, iniciarTransicao] = useTransition();
 
   function executar(promessa: Promise<{ erro: string | null }>) {
@@ -83,6 +92,79 @@ export function AcoesLote({
             variante="secundario"
             onClick={() => { setAberto(null); setErro(null); }}
           >
+            Voltar
+          </Botao>
+        </div>
+      </div>
+    );
+  }
+
+  if (aberto === 'editarDatas') {
+    return (
+      <div className="flex max-w-md flex-col gap-3 rounded-xl border border-borda bg-superficie p-4">
+        <p className="text-[13px] text-texto-2">Corrija as datas efetivas deste lote.</p>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-texto-2">Data de envio</span>
+          <input type="date" value={dataEnvio} max={hojeNegocio()} onChange={(e) => setDataEnvio(e.target.value)} className={CLASSE_ENTRADA} />
+        </label>
+        {estadoConferencia === 'aprovado' && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-texto-2">Data de aprovação</span>
+            <input type="date" value={dataAprovacao} max={hojeNegocio()} onChange={(e) => setDataAprovacao(e.target.value)} className={CLASSE_ENTRADA} />
+          </label>
+        )}
+        {erro && <p role="alert" className="text-[13px] text-erro">{erro}</p>}
+        <div className="flex flex-wrap gap-2">
+          <Botao
+            type="button"
+            carregando={pendente}
+            disabled={!dataEnvio || (estadoConferencia === 'aprovado' && !dataAprovacao)}
+            onClick={() => executar(editarDatasLoteAction(
+              loteId,
+              dataEnvio,
+              estadoConferencia === 'aprovado' ? dataAprovacao : null,
+            ))}
+          >
+            Salvar datas
+          </Botao>
+          <Botao type="button" variante="secundario" onClick={() => { setAberto(null); setErro(null); }}>
+            Voltar
+          </Botao>
+        </div>
+      </div>
+    );
+  }
+
+  if (aberto === 'excluir') {
+    const aprovado = estadoConferencia === 'aprovado';
+    return (
+      <div className="flex max-w-md flex-col gap-3 rounded-xl border border-erro bg-erro-suave p-4">
+        <p className="text-[13px]">
+          {aprovado
+            ? 'Desfaça a aprovação antes de excluir este lote.'
+            : 'A exclusão é permanente e remove os itens deste lote, liberando novamente as comissões.'}
+        </p>
+        {erro && <p role="alert" className="text-[13px] text-erro">{erro}</p>}
+        <div className="flex flex-wrap gap-2">
+          {!aprovado && (
+            <Botao
+              type="button"
+              variante="destrutivo"
+              carregando={pendente}
+              onClick={() => iniciarTransicao(async () => {
+                const resultado = await excluirLoteAction(loteId);
+                if (resultado.erro) {
+                  setErro(resultado.erro);
+                  return;
+                }
+                router.replace('/lotes');
+                router.refresh();
+              })}
+            >
+              Confirmar exclusão
+            </Botao>
+          )}
+          <Botao type="button" variante="secundario" onClick={() => { setAberto(null); setErro(null); }}>
             Voltar
           </Botao>
         </div>
@@ -143,6 +225,9 @@ export function AcoesLote({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
+        <Botao type="button" variante="secundario" onClick={() => { setErro(null); setAberto('editarDatas'); }}>
+          Editar datas
+        </Botao>
         {estadoConferencia === 'enviado' && (
           <>
             <Botao
@@ -162,6 +247,9 @@ export function AcoesLote({
             {TEXTOS.desfazer.botao}
           </Botao>
         )}
+        <Botao type="button" variante="destrutivo" onClick={() => { setErro(null); setAberto('excluir'); }}>
+          Excluir lote
+        </Botao>
       </div>
       {erro && (
         <p role="alert" className="text-[13px] text-erro">

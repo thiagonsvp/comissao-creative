@@ -5,18 +5,38 @@ import { EstadoVazio } from '@/componentes/EstadoVazio';
 import { Moeda } from '@/componentes/Moeda';
 import { Selo, seloDeStatusOs } from '@/componentes/Selo';
 import { CLASSE_ENTRADA } from '@/componentes/Campo';
+import { validarDataIso } from '@/dominio/datas';
 import { sessaoDaPagina } from '@/servidor/auth';
-import { listarOs } from '@/servidor/os/consultas';
+import { listarOs, type FiltroStatusOs } from '@/servidor/os/consultas';
+
+const STATUS_VALIDOS = new Set<FiltroStatusOs>([
+  'pendentes', 'aberta', 'parcial', 'quitada', 'todas',
+]);
+
+function dataValida(valor?: string): string | undefined {
+  if (!valor) return undefined;
+  try {
+    return validarDataIso(valor, 'data');
+  } catch {
+    return undefined;
+  }
+}
 
 export default async function PaginaListaOs({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; inicio?: string; fim?: string }>;
 }) {
   const sessao = await sessaoDaPagina();
-  const { q } = await searchParams;
-  const lista = await listarOs({ busca: q });
+  const { q, status: statusRecebido, inicio, fim } = await searchParams;
+  const status = STATUS_VALIDOS.has(statusRecebido as FiltroStatusOs)
+    ? statusRecebido as FiltroStatusOs
+    : 'pendentes';
+  const dataInicio = dataValida(inicio);
+  const dataFim = dataValida(fim);
+  const lista = await listarOs({ busca: q, status, dataInicio, dataFim });
   const ehAdmin = sessao.papel === 'admin';
+  const temFiltros = Boolean(q || status !== 'pendentes' || dataInicio || dataFim);
 
   return (
     <main>
@@ -27,29 +47,58 @@ export default async function PaginaListaOs({
         {ehAdmin && <BotaoLink href="/os/nova">Nova OS</BotaoLink>}
       </div>
 
-      <form className="mb-5">
-        <label htmlFor="q" className="sr-only">
-          Buscar ordens de serviço
+      <form className="mb-5 grid gap-3 rounded-xl border border-borda bg-superficie p-4 md:grid-cols-4">
+        <label className="flex flex-col gap-1.5 md:col-span-2">
+          <span className="text-[12px] font-medium text-texto-2">Buscar</span>
+          <input
+            type="search"
+            name="q"
+            defaultValue={q ?? ''}
+            placeholder="Número, cliente ou produto"
+            className={CLASSE_ENTRADA}
+          />
         </label>
-        <input
-          type="search"
-          name="q"
-          id="q"
-          defaultValue={q ?? ''}
-          placeholder="Buscar número, cliente ou produto"
-          className={`${CLASSE_ENTRADA} md:max-w-sm`}
-        />
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[12px] font-medium text-texto-2">Status</span>
+          <select name="status" defaultValue={status} className={CLASSE_ENTRADA}>
+            <option value="pendentes">Em aberto e parciais</option>
+            <option value="aberta">Somente abertas</option>
+            <option value="parcial">Somente parciais</option>
+            <option value="quitada">Somente quitadas</option>
+            <option value="todas">Todas as OS</option>
+          </select>
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-medium text-texto-2">Venda inicial</span>
+            <input type="date" name="inicio" defaultValue={dataInicio} className={CLASSE_ENTRADA} />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-medium text-texto-2">Venda final</span>
+            <input type="date" name="fim" defaultValue={dataFim} className={CLASSE_ENTRADA} />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2 md:col-span-4">
+          <button className="min-h-11 rounded-lg bg-destaque px-4 text-sm font-semibold text-sobre-destaque">
+            Aplicar filtros
+          </button>
+          {temFiltros && (
+            <Link href="/os" className="inline-flex min-h-11 items-center px-3 text-sm text-texto-2 underline">
+              Limpar filtros
+            </Link>
+          )}
+        </div>
       </form>
 
       {lista.length === 0 ? (
         <EstadoVazio
           titulo="Nenhuma OS encontrada"
           descricao={
-            q
+            temFiltros
               ? 'Nenhuma ordem de serviço corresponde a essa busca. Tente outro número, cliente ou produto.'
-              : 'Ainda não há ordens de serviço cadastradas.'
+              : 'Não há OS abertas ou parciais. Use o filtro de status para ver as quitadas.'
           }
-          acao={ehAdmin && !q ? <BotaoLink href="/os/nova">Cadastrar a primeira OS</BotaoLink> : undefined}
+          acao={ehAdmin && !temFiltros ? <BotaoLink href="/os/nova">Cadastrar nova OS</BotaoLink> : undefined}
         />
       ) : (
         <>

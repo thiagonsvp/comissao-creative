@@ -10,6 +10,7 @@ import { formatarPercentual, paraDecimalDb } from '@/dominio/dinheiro';
 import { sessaoDaPagina } from '@/servidor/auth';
 import { obterOsPorId } from '@/servidor/os/consultas';
 import { EstornarBaixa } from './EstornarBaixa';
+import { ExcluirOs } from './ExcluirOs';
 
 export default async function PaginaDetalheOs({
   params,
@@ -47,6 +48,7 @@ export default async function PaginaDetalheOs({
               Editar
             </BotaoLink>
             <BotaoLink href={`/os/${os.id}/baixas/nova`}>Registrar pagamento</BotaoLink>
+            <ExcluirOs osId={os.id} />
           </div>
         )}
       </div>

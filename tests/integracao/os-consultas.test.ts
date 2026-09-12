@@ -5,8 +5,7 @@ import { cadastrarOs } from '@/servidor/os/servico';
 import { listarOs, obterOsPorId } from '@/servidor/os/consultas';
 import { criarUsuarioTeste, espiaoSql, numeroOsTeste } from './ajuda';
 
-// app_writer não tem privilégio de DELETE (ver 20260910000200_privilegios.sql),
-// então o teste monta o cenário dentro da transação e desfaz tudo com rollback.
+// Cada caso monta o cenário dentro da transação e desfaz tudo com rollback.
 const ROLLBACK_TESTE = new Error('ROLLBACK_TESTE');
 
 describe('consultas de OS', () => {
@@ -70,6 +69,9 @@ describe('consultas de OS', () => {
 
         const comRateio = await obterOsPorId(osId, true, tx);
         expect(comRateio?.rateio).toEqual({ thiago: 500n, geice: 100n, gabrielle: 100n });
+
+        expect(await listarOs({ busca: numero, status: 'pendentes' }, tx)).toHaveLength(1);
+        expect(await listarOs({ busca: numero, status: 'quitada' }, tx)).toHaveLength(0);
 
         expect(await obterOsPorId(randomUUID(), false, tx)).toBeNull();
 
@@ -145,6 +147,9 @@ describe('consultas de OS', () => {
         expect(semPagamento.status).toBe('aberta');
         expect(semPagamento.comissaoLiberada).toBe(0n);
         expect(semPagamento.comissaoDisponivel).toBe(0n);
+
+        expect(await listarOs({ busca: numero, dataInicio: '2026-09-03' }, tx)).toHaveLength(0);
+        expect(await listarOs({ busca: numero, dataFim: '2026-09-02' }, tx)).toHaveLength(1);
 
         throw ROLLBACK_TESTE;
       }),
