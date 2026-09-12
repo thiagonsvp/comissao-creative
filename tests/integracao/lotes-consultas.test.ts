@@ -58,6 +58,11 @@ describe('consultas e conferência de lote', () => {
 
         const semRateio = await obterLotePorId(loteId, false, tx);
         expect(semRateio?.observacao).toBe('lote de teste');
+        expect(semRateio).toMatchObject({
+          motivoCancelamento: null,
+          loteOrigem: null,
+          loteSubstituto: null,
+        });
         expect(semRateio?.itens).toHaveLength(1);
         expect(semRateio?.itens[0]).toMatchObject({
           valorOsSnapshot: 1_000_000n,

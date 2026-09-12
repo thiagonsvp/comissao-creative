@@ -62,6 +62,11 @@ describe('consultas de OS', () => {
         expect(semRateio?.primeiroEnvioEm).toBeNull();
         expect(semRateio?.baixas).toHaveLength(1);
         expect(semRateio?.baixas[0]).toMatchObject({ data: '2026-09-05', valor: 500_000n });
+        expect(semRateio?.baixas[0]).toMatchObject({
+          tipo: 'recebimento',
+          motivo: null,
+          estornado: 0n,
+        });
 
         const comRateio = await obterOsPorId(osId, true, tx);
         expect(comRateio?.rateio).toEqual({ thiago: 500n, geice: 100n, gabrielle: 100n });
