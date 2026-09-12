@@ -16,6 +16,11 @@ export interface SituacaoDaOs {
   percentualComissao: Percentual;
   totalPago: Centavos;
   comprometido: Centavos;
+  /** O maior fim de intervalo reservado entre as reservas ativas — o teto
+   * real que o motor de reservas (`intervalosLivres`) exige. Normalmente
+   * igual a `comprometido`; maior quando um lote mais antigo foi cancelado
+   * e um mais novo continua válido, deixando um buraco no meio. */
+  tetoReservado: Centavos;
   lotes: LoteReservando[];
 }
 
@@ -43,7 +48,8 @@ export async function situacaoDaOs(
 
   const lotes = await exec`
     select lf.id, lf.numero, lf.estado_conferencia,
-      coalesce(sum(li.valor_comissao), 0) as valor_reservado
+      coalesce(sum(li.valor_comissao), 0) as valor_reservado,
+      max(li.fim_centavo)::text as fim_maximo
     from public.lote_item li
     join public.lote_financeiro lf on lf.id = li.lote_id
     where li.os_id = ${osId} and lf.estado_conferencia <> 'cancelado'
@@ -58,11 +64,17 @@ export async function situacaoDaOs(
     valorReservado: parseDecimal(l.valor_reservado),
   }));
 
+  const tetoReservado = lotes.reduce((acc, l) => {
+    const fim = l.fim_maximo === null ? 0n : BigInt(l.fim_maximo);
+    return fim > acc ? fim : acc;
+  }, 0n);
+
   return {
     valorOs: parseDecimal(os.valor),
     percentualComissao: parsePercentual(os.percentual_comissao),
     totalPago: parseDecimal(os.total_pago),
     comprometido: reservando.reduce((acc, l) => acc + l.valorReservado, 0n),
+    tetoReservado,
     lotes: reservando,
   };
 }

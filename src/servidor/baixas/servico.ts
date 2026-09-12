@@ -125,9 +125,13 @@ export async function estornarBaixaCliente(
     situacao.totalPago - dados.valor,
     situacao.valorOs,
   );
+  const pisoComissao =
+    situacao.tetoReservado > situacao.comprometido
+      ? situacao.tetoReservado
+      : situacao.comprometido;
   const recusa = motivoDeRecusaPorComissao(
     liberadaNova,
-    situacao.comprometido,
+    pisoComissao,
     situacao.lotes,
   );
   if (recusa) throw new ErroValidacao(recusa, 'valor');

@@ -4,7 +4,7 @@ import { ErroValidacao } from '@/dominio/erros';
 import { comTransacaoFinanceira, sql } from '@/servidor/db';
 import { cadastrarOs } from '@/servidor/os/servico';
 import { editarOs } from '@/servidor/os/servico';
-import { registrarBaixaCliente } from '@/servidor/baixas/servico';
+import { estornarBaixaCliente, registrarBaixaCliente } from '@/servidor/baixas/servico';
 import {
   aprovarLote,
   cancelarLote,
@@ -147,6 +147,51 @@ describe('ciclo de vida do lote', () => {
           select lote_origem_id from public.lote_financeiro where id = ${substituto.loteId}
         `;
         expect(novo.lote_origem_id).toBe(lote.loteId);
+
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
+  it('cancelar um lote antigo mantendo um mais novo nao permite reduzir a comissao abaixo do teto', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const dados = dadosOs();
+        const { osId } = await cadastrarOs(tx, dados, usuario.id);
+
+        // Metade paga: libera R$ 350,00 (comissão total R$ 700,00). Lote A reserva [0, 35000).
+        await registrarBaixaCliente(
+          tx,
+          { osId, data: '2026-09-05', valor: 500_000n, observacao: null },
+          usuario.id,
+        );
+        const loteA = await gerarLote(tx, { osIds: [osId], observacao: null }, usuario.id);
+
+        // Resto pago: libera os R$ 350,00 restantes. Lote B reserva [35000, 70000).
+        await registrarBaixaCliente(
+          tx,
+          { osId, data: '2026-09-06', valor: 500_000n, observacao: null },
+          usuario.id,
+        );
+        await gerarLote(tx, { osIds: [osId], observacao: null }, usuario.id);
+
+        // Cancela o lote A (o mais antigo). O lote B continua válido, reservando até 70000.
+        await cancelarLote(tx, loteA.loteId, 'Lote antigo cancelado para teste', usuario.id);
+
+        // A soma comprometida caiu para 35000 (só o lote B), mas o teto continua 70000.
+        // Um estorno que reduza a liberada para 35000 teria passado pela trava antiga
+        // (35000 >= 35000n de comprometido) mas precisa ser recusado, porque o lote B
+        // reservou até 70000.
+        const [recebimento] = await tx`
+          select id from public.baixa_cliente where os_id = ${osId} and tipo = 'recebimento' order by data_efetiva limit 1
+        `;
+        await expect(
+          estornarBaixaCliente(
+            tx,
+            { baixaId: recebimento.id, valor: 500_000n, data: '2026-09-10', motivo: 'Teste do teto' },
+            usuario.id,
+          ),
+        ).rejects.toThrow(/Cancele esse lote|aprovado/);
 
         throw ROLLBACK_TESTE;
       }),

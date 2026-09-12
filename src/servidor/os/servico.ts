@@ -137,9 +137,13 @@ export async function editarOs(
       situacao.totalPago,
       dados.valor,
     );
+    const pisoComissao =
+      situacao.tetoReservado > situacao.comprometido
+        ? situacao.tetoReservado
+        : situacao.comprometido;
     const motivo = motivoDeRecusaPorComissao(
       liberadaNova,
-      situacao.comprometido,
+      pisoComissao,
       situacao.lotes,
     );
     if (motivo) throw new ErroValidacao(motivo, 'valor');
