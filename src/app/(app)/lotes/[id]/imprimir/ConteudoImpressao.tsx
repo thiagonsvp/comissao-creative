@@ -23,6 +23,12 @@ export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
           Lote <strong className="text-texto">{lote.numero}</strong>
           <br />
           {lote.dataEnvio ? `Enviado em ${formatarDataBr(lote.dataEnvio)}` : 'Sem data de envio'}
+          {lote.dataAprovacao && (
+            <>
+              <br />
+              {`Aprovado em ${formatarDataBr(lote.dataAprovacao)}`}
+            </>
+          )}
         </p>
       </header>
 

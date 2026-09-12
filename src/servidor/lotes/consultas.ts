@@ -7,6 +7,7 @@ export interface LoteListado {
   numero: number;
   estadoConferencia: string;
   dataEnvio: string | null;
+  dataAprovacao: string | null;
   valorTotal: Centavos;
 }
 
@@ -35,6 +36,7 @@ export async function listarLotes(exec: Executor = sql): Promise<LoteListado[]> 
   const linhas = await exec`
     select id, numero, estado_conferencia,
       to_char(data_envio, 'YYYY-MM-DD') as data_envio,
+      to_char(aprovado_em at time zone 'America/Sao_Paulo', 'YYYY-MM-DD') as data_aprovacao,
       valor_total_original
     from public.lote_financeiro
     order by numero desc
@@ -44,6 +46,7 @@ export async function listarLotes(exec: Executor = sql): Promise<LoteListado[]> 
     numero: Number(l.numero),
     estadoConferencia: l.estado_conferencia,
     dataEnvio: l.data_envio,
+    dataAprovacao: l.data_aprovacao,
     valorTotal: parseDecimal(l.valor_total_original),
   }));
 }
@@ -56,6 +59,7 @@ export async function obterLotePorId(
   const [lote] = await exec`
     select lf.id, lf.numero, lf.estado_conferencia,
       to_char(lf.data_envio, 'YYYY-MM-DD') as data_envio,
+      to_char(lf.aprovado_em at time zone 'America/Sao_Paulo', 'YYYY-MM-DD') as data_aprovacao,
       lf.valor_total_original, lf.observacao, lf.motivo_cancelamento,
       origem.id as origem_id, origem.numero as origem_numero,
       substituto.id as substituto_id, substituto.numero as substituto_numero
@@ -93,6 +97,7 @@ export async function obterLotePorId(
     numero: Number(lote.numero),
     estadoConferencia: lote.estado_conferencia,
     dataEnvio: lote.data_envio,
+    dataAprovacao: lote.data_aprovacao,
     valorTotal: parseDecimal(lote.valor_total_original),
     observacao: lote.observacao,
     motivoCancelamento: lote.motivo_cancelamento,

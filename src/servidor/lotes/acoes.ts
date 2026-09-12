@@ -13,10 +13,13 @@ import { aprovarLote, cancelarLote, desfazerAprovacaoLote, gerarLote } from './s
 
 export async function aprovarLoteAction(
   loteId: string,
+  dataAprovacao: string,
 ): Promise<{ erro: string | null }> {
   try {
     const sessao = await exigirPapel('admin');
-    await comTransacaoFinanceira((tx) => aprovarLote(tx, loteId, sessao.userId));
+    await comTransacaoFinanceira((tx) =>
+      aprovarLote(tx, loteId, sessao.userId, dataAprovacao),
+    );
   } catch (erro) {
     if (erro instanceof ErroValidacao || erro instanceof ErroPermissao) {
       return { erro: erro.message };

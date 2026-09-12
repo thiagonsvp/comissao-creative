@@ -1,5 +1,5 @@
 import type postgres from 'postgres';
-import { hojeNegocio } from '@/dominio/datas';
+import { dataNaoFutura, hojeNegocio } from '@/dominio/datas';
 import {
   paraDecimalDb,
   paraPercentualDb,
@@ -191,7 +191,9 @@ export async function aprovarLote(
   tx: postgres.TransactionSql,
   loteId: string,
   usuarioId: string,
+  data: string = hojeNegocio(),
 ): Promise<void> {
+  const dataAprovacao = dataNaoFutura(data, 'dataAprovacao');
   const [lote] = await tx`
     select estado_conferencia from public.lote_financeiro
     where id = ${loteId} for update
@@ -204,7 +206,9 @@ export async function aprovarLote(
   await tx`
     update public.lote_financeiro
     set estado_conferencia = 'aprovado',
-        aprovado_em = now(),
+        aprovado_em = (
+          (${dataAprovacao}::date + time '12:00') at time zone 'America/Sao_Paulo'
+        ),
         aprovado_por = ${usuarioId},
         atualizado_por = ${usuarioId}
     where id = ${loteId}
@@ -215,6 +219,8 @@ export async function aprovarLote(
     entidadeId: loteId,
     acao: 'aprovar',
     responsavelId: usuarioId,
+    dataEfetiva: dataAprovacao,
+    valoresNovos: { estadoConferencia: 'aprovado', dataAprovacao },
   });
 }
 
@@ -283,7 +289,9 @@ export async function desfazerAprovacaoLote(
   }
 
   const [lote] = await tx`
-    select estado_conferencia, aprovado_em from public.lote_financeiro
+    select estado_conferencia, aprovado_em,
+      to_char(aprovado_em at time zone 'America/Sao_Paulo', 'YYYY-MM-DD') as data_aprovacao
+    from public.lote_financeiro
     where id = ${loteId} for update
   `;
   if (!lote) throw new ErroValidacao('Lote não encontrado');
@@ -307,7 +315,11 @@ export async function desfazerAprovacaoLote(
     acao: 'desfazer_aprovacao',
     responsavelId: usuarioId,
     motivo: motivoLimpo,
-    valoresAnteriores: { estadoConferencia: 'aprovado', aprovadoEm: lote.aprovado_em },
+    valoresAnteriores: {
+      estadoConferencia: 'aprovado',
+      aprovadoEm: lote.aprovado_em,
+      dataAprovacao: lote.data_aprovacao,
+    },
     valoresNovos: { estadoConferencia: 'enviado' },
   });
 }

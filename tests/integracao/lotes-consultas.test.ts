@@ -113,20 +113,28 @@ describe('consultas e conferência de lote', () => {
       comTransacaoFinanceira(async (tx) => {
         const { loteId } = await loteQuitado(tx);
 
-        await aprovarLote(tx, loteId, usuario.id);
+        await expect(
+          aprovarLote(tx, loteId, usuario.id, '2099-01-01'),
+        ).rejects.toThrow(/futura/i);
+
+        await aprovarLote(tx, loteId, usuario.id, '2026-09-04');
         const [lote] = await tx`
-          select estado_conferencia, aprovado_em, aprovado_por
+          select estado_conferencia, aprovado_em, aprovado_por,
+            to_char(aprovado_em at time zone 'America/Sao_Paulo', 'YYYY-MM-DD') as data_aprovacao
           from public.lote_financeiro where id = ${loteId}
         `;
         expect(lote.estado_conferencia).toBe('aprovado');
         expect(lote.aprovado_em).not.toBeNull();
         expect(lote.aprovado_por).toBe(usuario.id);
+        expect(lote.data_aprovacao).toBe('2026-09-04');
 
         const [auditoria] = await tx`
-          select acao from interno.auditoria_evento
+          select acao, to_char(data_efetiva, 'YYYY-MM-DD') as data_efetiva
+          from interno.auditoria_evento
           where entidade = 'lote_financeiro' and entidade_id = ${loteId} and acao = 'aprovar'
         `;
         expect(auditoria).toBeTruthy();
+        expect(auditoria.data_efetiva).toBe('2026-09-04');
 
         await expect(aprovarLote(tx, loteId, usuario.id)).rejects.toThrow(ErroValidacao);
 

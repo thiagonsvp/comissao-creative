@@ -34,6 +34,7 @@ export default async function PaginaDetalheLote({
           </div>
           <p className="mt-1 text-[13.5px] text-texto-2">
             {lote.dataEnvio ? `Enviado em ${formatarDataBr(lote.dataEnvio)}` : 'Sem data de envio'}
+            {lote.dataAprovacao ? ` · Aprovado em ${formatarDataBr(lote.dataAprovacao)}` : ''}
             {lote.observacao ? ` · ${lote.observacao}` : ''}
           </p>
         </div>

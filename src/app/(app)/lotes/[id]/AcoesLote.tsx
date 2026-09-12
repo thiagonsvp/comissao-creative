@@ -3,13 +3,15 @@
 import { useState, useTransition } from 'react';
 import { Botao } from '@/componentes/Botao';
 import { CLASSE_ENTRADA } from '@/componentes/Campo';
+import { hojeNegocio } from '@/dominio/datas';
 import {
   aprovarLoteAction,
   cancelarLoteAction,
   desfazerAprovacaoAction,
 } from '@/servidor/lotes/acoes';
 
-type ComMotivo = 'cancelar' | 'desfazer';
+type AcaoAberta = 'aprovar' | 'cancelar' | 'desfazer';
+type ComMotivo = Exclude<AcaoAberta, 'aprovar'>;
 
 const TEXTOS: Record<ComMotivo, { botao: string; titulo: string; confirmar: string }> = {
   cancelar: {
@@ -34,8 +36,9 @@ export function AcoesLote({
   estadoConferencia: string;
 }) {
   const [erro, setErro] = useState<string | null>(null);
-  const [aberto, setAberto] = useState<ComMotivo | null>(null);
+  const [aberto, setAberto] = useState<AcaoAberta | null>(null);
   const [motivo, setMotivo] = useState('');
+  const [dataAprovacao, setDataAprovacao] = useState(hojeNegocio());
   const [pendente, iniciarTransicao] = useTransition();
 
   function executar(promessa: Promise<{ erro: string | null }>) {
@@ -47,6 +50,44 @@ export function AcoesLote({
         setMotivo('');
       }
     });
+  }
+
+  if (aberto === 'aprovar') {
+    return (
+      <div className="flex max-w-md flex-col gap-3 rounded-xl border border-borda bg-superficie p-4">
+        <p className="text-[13px] text-texto-2">
+          Informe a data em que o lote foi aprovado pelo financeiro.
+        </p>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-texto-2">Data da aprovação</span>
+          <input
+            type="date"
+            value={dataAprovacao}
+            max={hojeNegocio()}
+            onChange={(evento) => setDataAprovacao(evento.target.value)}
+            className={CLASSE_ENTRADA}
+          />
+        </label>
+        {erro && <p role="alert" className="text-[13px] text-erro">{erro}</p>}
+        <div className="flex flex-wrap gap-2">
+          <Botao
+            type="button"
+            carregando={pendente}
+            disabled={dataAprovacao === ''}
+            onClick={() => executar(aprovarLoteAction(loteId, dataAprovacao))}
+          >
+            Confirmar aprovação
+          </Botao>
+          <Botao
+            type="button"
+            variante="secundario"
+            onClick={() => { setAberto(null); setErro(null); }}
+          >
+            Voltar
+          </Botao>
+        </div>
+      </div>
+    );
   }
 
   if (aberto) {
@@ -107,7 +148,7 @@ export function AcoesLote({
             <Botao
               type="button"
               carregando={pendente}
-              onClick={() => executar(aprovarLoteAction(loteId))}
+              onClick={() => { setErro(null); setAberto('aprovar'); }}
             >
               Marcar como aprovado pelo financeiro
             </Botao>

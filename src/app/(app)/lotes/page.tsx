@@ -38,7 +38,11 @@ export default async function PaginaListaLotes() {
                   titulo={`Lote ${lote.numero}`}
                   selo={seloDeEstadoLote(lote.estadoConferencia)}
                   descricao={
-                    lote.dataEnvio ? `Enviado em ${formatarDataBr(lote.dataEnvio)}` : 'Sem data de envio'
+                    lote.dataAprovacao
+                      ? `Aprovado em ${formatarDataBr(lote.dataAprovacao)}`
+                      : lote.dataEnvio
+                        ? `Enviado em ${formatarDataBr(lote.dataEnvio)}`
+                        : 'Sem data de envio'
                   }
                   rotuloValor="Total"
                   valor={lote.valorTotal}
@@ -52,6 +56,7 @@ export default async function PaginaListaLotes() {
               <tr>
                 <th scope="col">Número</th>
                 <th scope="col">Data de envio</th>
+                <th scope="col">Data de aprovação</th>
                 <th scope="col" className="direita">Total</th>
                 <th scope="col">Estado</th>
               </tr>
@@ -66,6 +71,9 @@ export default async function PaginaListaLotes() {
                   </td>
                   <td className="num">
                     {lote.dataEnvio ? formatarDataBr(lote.dataEnvio) : '—'}
+                  </td>
+                  <td className="num">
+                    {lote.dataAprovacao ? formatarDataBr(lote.dataAprovacao) : '—'}
                   </td>
                   <td className="direita font-semibold">
                     <Moeda valor={lote.valorTotal} />
