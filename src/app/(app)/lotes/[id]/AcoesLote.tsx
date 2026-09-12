@@ -89,6 +89,7 @@ export function AcoesLote({
             onClick={() => {
               setAberto(null);
               setErro(null);
+              setMotivo('');
             }}
           >
             Voltar
