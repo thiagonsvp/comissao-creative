@@ -57,7 +57,6 @@ export async function gerarLoteAction(
 
 async function mudarEstadoDoLote(
   loteId: string,
-  motivo: string,
   acao: (tx: Parameters<typeof cancelarLote>[0], usuarioId: string) => Promise<void>,
 ): Promise<{ erro: string | null }> {
   try {
@@ -82,7 +81,7 @@ export async function cancelarLoteAction(
   loteId: string,
   motivo: string,
 ): Promise<{ erro: string | null }> {
-  return mudarEstadoDoLote(loteId, motivo, (tx, usuarioId) =>
+  return mudarEstadoDoLote(loteId, (tx, usuarioId) =>
     cancelarLote(tx, loteId, motivo, usuarioId),
   );
 }
@@ -91,7 +90,7 @@ export async function desfazerAprovacaoAction(
   loteId: string,
   motivo: string,
 ): Promise<{ erro: string | null }> {
-  return mudarEstadoDoLote(loteId, motivo, (tx, usuarioId) =>
+  return mudarEstadoDoLote(loteId, (tx, usuarioId) =>
     desfazerAprovacaoLote(tx, loteId, motivo, usuarioId),
   );
 }
