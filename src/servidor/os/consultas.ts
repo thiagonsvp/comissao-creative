@@ -30,6 +30,7 @@ export interface OsDetalhe extends OsListada {
   percentualComissao: Percentual;
   tipoPagamento: string;
   dataVenda: string;
+  observacao: string | null;
   totalPagoCliente: Centavos;
   comissaoTotal: Centavos;
   primeiroEnvioEm: string | null;
@@ -53,6 +54,7 @@ interface LinhaOs {
   percentual_comissao: string;
   tipo_pagamento: string;
   data_venda: string;
+  observacao: string | null;
   primeiro_envio_em: Date | null;
   total_pago: string;
   comprometido: string;
@@ -71,6 +73,7 @@ function projecaoOs(exec: Executor) {
   return exec`
     o.id, o.numero_os, o.cliente, o.produto, o.valor, o.percentual_comissao,
     o.tipo_pagamento, to_char(o.data_venda, 'YYYY-MM-DD') as data_venda,
+    o.observacao,
     o.primeiro_envio_em,
     (
       select coalesce(sum(case when b.tipo = 'estorno' then -b.valor else b.valor end), 0)
@@ -178,6 +181,7 @@ export async function obterOsPorId(
     percentualComissao: percentual,
     tipoPagamento: linha.tipo_pagamento,
     dataVenda: linha.data_venda,
+    observacao: linha.observacao,
     totalPagoCliente: parseDecimal(linha.total_pago),
     comissaoTotal: calcularComissaoTotal(base.valor, percentual),
     primeiroEnvioEm: linha.primeiro_envio_em ? linha.primeiro_envio_em.toISOString() : null,
