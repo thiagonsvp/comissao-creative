@@ -16,7 +16,13 @@ interface OsElegivel {
   comissaoDisponivel: Centavos;
 }
 
-export function FormularioGerarLote({ osElegiveis }: { osElegiveis: OsElegivel[] }) {
+export function FormularioGerarLote({
+  osElegiveis,
+  loteOrigemId,
+}: {
+  osElegiveis: OsElegivel[];
+  loteOrigemId?: string | null;
+}) {
   const [estado, acao, emAndamento] = useActionState(
     gerarLoteAction,
     ESTADO_INICIAL_FORMULARIO,
@@ -50,6 +56,7 @@ export function FormularioGerarLote({ osElegiveis }: { osElegiveis: OsElegivel[]
 
   return (
     <form action={acao} className="flex flex-col gap-4">
+      {loteOrigemId && <input type="hidden" name="loteOrigemId" value={loteOrigemId} />}
       <ul className="flex flex-col gap-2.5">
         {osElegiveis.map((os) => {
           const marcada = selecionadas.has(os.id);

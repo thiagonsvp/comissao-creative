@@ -51,6 +51,41 @@ export default async function PaginaDetalheLote({
         />
       </div>
 
+      {lote.motivoCancelamento && (
+        <p className="mb-4 rounded-xl border border-erro bg-erro-suave p-3.5 text-[13px]">
+          <strong>Lote cancelado.</strong> {lote.motivoCancelamento}
+          {lote.loteSubstituto && (
+            <>
+              {' '}
+              Substituído pelo{' '}
+              <Link
+                href={`/lotes/${lote.loteSubstituto.id}`}
+                className="font-semibold underline"
+              >
+                lote {lote.loteSubstituto.numero}
+              </Link>
+              .
+            </>
+          )}
+        </p>
+      )}
+
+      {lote.loteOrigem && (
+        <p className="mb-4 text-[13px] text-texto-2">
+          Substitui o{' '}
+          <Link href={`/lotes/${lote.loteOrigem.id}`} className="underline">
+            lote {lote.loteOrigem.numero}
+          </Link>
+          , que foi cancelado.
+        </p>
+      )}
+
+      {ehAdmin && lote.estadoConferencia === 'cancelado' && !lote.loteSubstituto && (
+        <div className="mb-6">
+          <BotaoLink href={`/lotes/gerar?origem=${lote.id}`}>Gerar lote substituto</BotaoLink>
+        </div>
+      )}
+
       {ehAdmin && (
         <div className="mb-6">
           <AcoesLote loteId={lote.id} estadoConferencia={lote.estadoConferencia} />

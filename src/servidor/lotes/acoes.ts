@@ -36,12 +36,13 @@ export async function gerarLoteAction(
 ): Promise<EstadoFormulario> {
   const osIds = formData.getAll('osIds').map(String);
   const observacao = String(formData.get('observacao') ?? '').trim() || null;
+  const loteOrigemId = String(formData.get('loteOrigemId') ?? '') || undefined;
 
   let loteId: string;
   try {
     const sessao = await exigirPapel('admin');
     const resultado = await comTransacaoFinanceira((tx) =>
-      gerarLote(tx, { osIds, observacao }, sessao.userId),
+      gerarLote(tx, { osIds, observacao, loteOrigemId }, sessao.userId),
     );
     loteId = resultado.loteId;
   } catch (erro) {

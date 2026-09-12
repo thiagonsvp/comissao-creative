@@ -3,8 +3,13 @@ import { sessaoDaPagina } from '@/servidor/auth';
 import { listarOsComComissaoDisponivel } from '@/servidor/os/consultas';
 import { FormularioGerarLote } from './FormularioGerarLote';
 
-export default async function PaginaGerarLote() {
+export default async function PaginaGerarLote({
+  searchParams,
+}: {
+  searchParams: Promise<{ origem?: string }>;
+}) {
   await sessaoDaPagina('admin');
+  const { origem } = await searchParams;
   const osElegiveis = await listarOsComComissaoDisponivel();
 
   return (
@@ -16,7 +21,7 @@ export default async function PaginaGerarLote() {
         Confira o que entra. O total abaixo é o da abertura da página; o valor gravado é
         sempre recalculado no servidor, dentro da transação, no momento da confirmação.
       </p>
-      <FormularioGerarLote osElegiveis={osElegiveis} />
+      <FormularioGerarLote osElegiveis={osElegiveis} loteOrigemId={origem ?? null} />
       <p className="mt-8">
         <Link href="/lotes" className="text-[13px] text-texto-2 underline">
           ← Voltar para os lotes
