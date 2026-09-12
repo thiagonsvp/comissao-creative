@@ -7,10 +7,18 @@ import { Selo, seloDeStatusOs } from '@/componentes/Selo';
 import { CLASSE_ENTRADA } from '@/componentes/Campo';
 import { validarDataIso } from '@/dominio/datas';
 import { sessaoDaPagina } from '@/servidor/auth';
-import { listarOs, type FiltroStatusOs } from '@/servidor/os/consultas';
+import {
+  listarOs,
+  type ColunaOrdenacaoOs,
+  type DirecaoOrdenacao,
+  type FiltroStatusOs,
+} from '@/servidor/os/consultas';
 
 const STATUS_VALIDOS = new Set<FiltroStatusOs>([
   'pendentes', 'aberta', 'parcial', 'quitada', 'todas',
+]);
+const COLUNAS_VALIDAS = new Set<ColunaOrdenacaoOs>([
+  'numero', 'cliente', 'produto', 'valor', 'status', 'comissaoDisponivel',
 ]);
 
 function dataValida(valor?: string): string | undefined {
@@ -25,18 +33,69 @@ function dataValida(valor?: string): string | undefined {
 export default async function PaginaListaOs({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; inicio?: string; fim?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    status?: string;
+    inicio?: string;
+    fim?: string;
+    ordem?: string;
+    direcao?: string;
+  }>;
 }) {
   const sessao = await sessaoDaPagina();
-  const { q, status: statusRecebido, inicio, fim } = await searchParams;
+  const parametros = await searchParams;
+  const { q, status: statusRecebido, inicio, fim } = parametros;
   const status = STATUS_VALIDOS.has(statusRecebido as FiltroStatusOs)
     ? statusRecebido as FiltroStatusOs
     : 'pendentes';
   const dataInicio = dataValida(inicio);
   const dataFim = dataValida(fim);
-  const lista = await listarOs({ busca: q, status, dataInicio, dataFim });
+  const ordenarPor = COLUNAS_VALIDAS.has(parametros.ordem as ColunaOrdenacaoOs)
+    ? parametros.ordem as ColunaOrdenacaoOs
+    : 'numero';
+  const direcao: DirecaoOrdenacao = parametros.direcao === 'asc' ? 'asc' : 'desc';
+  const lista = await listarOs({
+    busca: q,
+    status,
+    dataInicio,
+    dataFim,
+    ordenarPor,
+    direcao,
+  });
   const ehAdmin = sessao.papel === 'admin';
   const temFiltros = Boolean(q || status !== 'pendentes' || dataInicio || dataFim);
+
+  function linkOrdenacao(coluna: ColunaOrdenacaoOs): string {
+    const novos = new URLSearchParams();
+    if (q) novos.set('q', q);
+    novos.set('status', status);
+    if (dataInicio) novos.set('inicio', dataInicio);
+    if (dataFim) novos.set('fim', dataFim);
+    novos.set('ordem', coluna);
+    novos.set('direcao', ordenarPor === coluna && direcao === 'asc' ? 'desc' : 'asc');
+    return `/os?${novos.toString()}`;
+  }
+
+  function cabecalho(coluna: ColunaOrdenacaoOs, rotulo: string, direita = false) {
+    const ativa = ordenarPor === coluna;
+    return (
+      <th
+        scope="col"
+        className={direita ? 'direita' : undefined}
+        aria-sort={ativa ? (direcao === 'asc' ? 'ascending' : 'descending') : 'none'}
+      >
+        <Link
+          href={linkOrdenacao(coluna)}
+          className={`inline-flex items-center gap-1 underline-offset-2 hover:underline ${direita ? 'justify-end' : ''}`}
+        >
+          {rotulo}
+          <span aria-hidden="true" className={ativa ? 'text-destaque' : 'text-texto-2'}>
+            {ativa ? (direcao === 'asc' ? '↑' : '↓') : '↕'}
+          </span>
+        </Link>
+      </th>
+    );
+  }
 
   return (
     <main>
@@ -122,12 +181,12 @@ export default async function PaginaListaOs({
           <table className="tabela hidden md:table">
             <thead>
               <tr>
-                <th scope="col">Número</th>
-                <th scope="col">Cliente</th>
-                <th scope="col">Produto</th>
-                <th scope="col" className="direita">Valor</th>
-                <th scope="col">Status</th>
-                <th scope="col" className="direita">Comissão disponível</th>
+                {cabecalho('numero', 'Número')}
+                {cabecalho('cliente', 'Cliente')}
+                {cabecalho('produto', 'Produto')}
+                {cabecalho('valor', 'Valor', true)}
+                {cabecalho('status', 'Status')}
+                {cabecalho('comissaoDisponivel', 'Comissão disponível', true)}
               </tr>
             </thead>
             <tbody>

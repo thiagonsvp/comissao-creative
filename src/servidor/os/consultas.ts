@@ -16,12 +16,22 @@ import { sql, type Executor } from '@/servidor/db';
 export type { Executor };
 
 export type FiltroStatusOs = 'pendentes' | StatusRecebimento | 'todas';
+export type ColunaOrdenacaoOs =
+  | 'numero'
+  | 'cliente'
+  | 'produto'
+  | 'valor'
+  | 'status'
+  | 'comissaoDisponivel';
+export type DirecaoOrdenacao = 'asc' | 'desc';
 
 export interface FiltrosOs {
   busca?: string;
   status?: FiltroStatusOs;
   dataInicio?: string;
   dataFim?: string;
+  ordenarPor?: ColunaOrdenacaoOs;
+  direcao?: DirecaoOrdenacao;
 }
 
 export interface OsListada {
@@ -141,12 +151,50 @@ export async function listarOs(
     order by o.data_venda desc, o.numero_os_normalizado
   `) as unknown as LinhaOs[];
 
-  const lista = linhas.map(paraListada);
-  if (!filtros.status || filtros.status === 'todas') return lista;
+  let lista = linhas.map(paraListada);
   if (filtros.status === 'pendentes') {
-    return lista.filter((os) => os.status !== 'quitada');
+    lista = lista.filter((os) => os.status !== 'quitada');
+  } else if (filtros.status && filtros.status !== 'todas') {
+    lista = lista.filter((os) => os.status === filtros.status);
   }
-  return lista.filter((os) => os.status === filtros.status);
+
+  const coluna = filtros.ordenarPor ?? 'numero';
+  const fator = (filtros.direcao ?? 'desc') === 'asc' ? 1 : -1;
+  const compararTexto = new Intl.Collator('pt-BR', {
+    numeric: true,
+    sensitivity: 'base',
+  }).compare;
+  const ordemStatus: Record<StatusRecebimento, number> = {
+    aberta: 0,
+    parcial: 1,
+    quitada: 2,
+  };
+
+  return lista.sort((a, b) => {
+    let resultado: number;
+    switch (coluna) {
+      case 'cliente':
+        resultado = compararTexto(a.cliente, b.cliente);
+        break;
+      case 'produto':
+        resultado = compararTexto(a.produto, b.produto);
+        break;
+      case 'valor':
+        resultado = a.valor < b.valor ? -1 : a.valor > b.valor ? 1 : 0;
+        break;
+      case 'status':
+        resultado = ordemStatus[a.status] - ordemStatus[b.status];
+        break;
+      case 'comissaoDisponivel':
+        resultado = a.comissaoDisponivel < b.comissaoDisponivel
+          ? -1
+          : a.comissaoDisponivel > b.comissaoDisponivel ? 1 : 0;
+        break;
+      default:
+        resultado = compararTexto(a.numeroOs, b.numeroOs);
+    }
+    return resultado * fator || compararTexto(a.numeroOs, b.numeroOs) * -1;
+  });
 }
 
 export async function obterOsPorId(

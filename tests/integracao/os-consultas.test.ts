@@ -156,6 +156,45 @@ describe('consultas de OS', () => {
     ).rejects.toBe(ROLLBACK_TESTE);
   });
 
+  it('ordena por número decrescente por padrão e permite trocar coluna e direção', async () => {
+    const base = numeroOsTeste('ORDEM');
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        await cadastrarOs(
+          tx,
+          {
+            numeroOs: `${base}-2`, cliente: 'Cliente Z', produto: 'Produto A',
+            tipoPagamento: 'Pix', valor: 100_000n, percentualComissao: 700n,
+            dataVenda: '2026-09-01', observacao: null,
+            rateio: { thiago: 500n, geice: 100n, gabrielle: 100n },
+          },
+          usuario.id,
+        );
+        await cadastrarOs(
+          tx,
+          {
+            numeroOs: `${base}-10`, cliente: 'Cliente A', produto: 'Produto Z',
+            tipoPagamento: 'Pix', valor: 200_000n, percentualComissao: 700n,
+            dataVenda: '2026-09-01', observacao: null,
+            rateio: { thiago: 500n, geice: 100n, gabrielle: 100n },
+          },
+          usuario.id,
+        );
+
+        const padrao = await listarOs({ busca: base }, tx);
+        expect(padrao.map((os) => os.numeroOs)).toEqual([`${base}-10`, `${base}-2`]);
+
+        const porCliente = await listarOs(
+          { busca: base, ordenarPor: 'cliente', direcao: 'asc' },
+          tx,
+        );
+        expect(porCliente.map((os) => os.cliente)).toEqual(['Cliente A', 'Cliente Z']);
+
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
   afterAll(async () => {
     await usuario.remover();
     await sql.end();
