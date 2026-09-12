@@ -116,7 +116,7 @@ export default async function PaginaDetalheOs({
                       <Moeda valor={baixa.valor} className="font-medium" />
                     </span>
                   </div>
-                  {baixa.motivo && (
+                  {ehEstorno && baixa.motivo && (
                     <p className="mt-1 text-[12.5px] text-texto-2">{baixa.motivo}</p>
                   )}
                   {!ehEstorno && baixa.estornado > 0n && (
