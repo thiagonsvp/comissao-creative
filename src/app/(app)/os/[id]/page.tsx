@@ -5,10 +5,11 @@ import { BotaoLink } from '@/componentes/Botao';
 import { CartaoValor } from '@/componentes/CartaoValor';
 import { Moeda } from '@/componentes/Moeda';
 import { Selo, seloDeStatusOs } from '@/componentes/Selo';
-import { formatarDataBr } from '@/dominio/datas';
-import { formatarPercentual } from '@/dominio/dinheiro';
+import { formatarDataBr, hojeNegocio } from '@/dominio/datas';
+import { formatarPercentual, paraDecimalDb } from '@/dominio/dinheiro';
 import { sessaoDaPagina } from '@/servidor/auth';
 import { obterOsPorId } from '@/servidor/os/consultas';
+import { EstornarBaixa } from './EstornarBaixa';
 
 export default async function PaginaDetalheOs({
   params,
@@ -41,7 +42,12 @@ export default async function PaginaDetalheOs({
           </p>
         </div>
         {ehAdmin && (
-          <BotaoLink href={`/os/${os.id}/baixas/nova`}>Registrar pagamento</BotaoLink>
+          <div className="flex flex-wrap gap-2">
+            <BotaoLink href={`/os/${os.id}/editar`} variante="secundario">
+              Editar
+            </BotaoLink>
+            <BotaoLink href={`/os/${os.id}/baixas/nova`}>Registrar pagamento</BotaoLink>
+          </div>
         )}
       </div>
 
@@ -95,15 +101,40 @@ export default async function PaginaDetalheOs({
           </p>
         ) : (
           <ul>
-            {os.baixas.map((baixa) => (
-              <li
-                key={baixa.id}
-                className="flex items-baseline justify-between border-b border-borda py-2.5 text-[13.5px] last:border-b-0"
-              >
-                <span className="num">{formatarDataBr(baixa.data)}</span>
-                <Moeda valor={baixa.valor} className="font-medium" />
-              </li>
-            ))}
+            {os.baixas.map((baixa) => {
+              const ehEstorno = baixa.tipo === 'estorno';
+              const saldo = baixa.valor - baixa.estornado;
+              return (
+                <li key={baixa.id} className="border-b border-borda py-3 last:border-b-0">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 text-[13.5px]">
+                    <span className="num">
+                      {formatarDataBr(baixa.data)}
+                      {ehEstorno && <span className="ml-2 text-erro">estorno</span>}
+                    </span>
+                    <span className={ehEstorno ? 'text-erro' : ''}>
+                      {ehEstorno && '− '}
+                      <Moeda valor={baixa.valor} className="font-medium" />
+                    </span>
+                  </div>
+                  {baixa.motivo && (
+                    <p className="mt-1 text-[12.5px] text-texto-2">{baixa.motivo}</p>
+                  )}
+                  {!ehEstorno && baixa.estornado > 0n && (
+                    <p className="mt-1 text-[12.5px] text-texto-2">
+                      Estornado: <Moeda valor={baixa.estornado} />
+                    </p>
+                  )}
+                  {ehAdmin && !ehEstorno && saldo > 0n && (
+                    <EstornarBaixa
+                      osId={os.id}
+                      baixaId={baixa.id}
+                      saldoEstornavel={paraDecimalDb(saldo).replace('.', ',')}
+                      dataPadrao={hojeNegocio()}
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
