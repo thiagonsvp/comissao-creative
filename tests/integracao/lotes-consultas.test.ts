@@ -91,6 +91,63 @@ describe('consultas e conferência de lote', () => {
     ).rejects.toBe(ROLLBACK_TESTE);
   });
 
+  it('calcula o pago referente a cada lote pela diferenca com o lote anterior da mesma OS', async () => {
+    await expect(
+      comTransacaoFinanceira(async (tx) => {
+        const { osId } = await cadastrarOs(
+          tx,
+          {
+            numeroOs: numeroOsTeste('LOTEPAGO'),
+            cliente: 'Cliente Pago',
+            produto: 'Produto Pago',
+            tipoPagamento: 'Pix',
+            valor: 1_000_000n,
+            percentualComissao: 700n,
+            dataVenda: '2026-09-01',
+            observacao: null,
+            rateio: { thiago: 500n, geice: 100n, gabrielle: 100n },
+          },
+          usuario.id,
+        );
+
+        // Metade paga: primeiro lote desta OS. Sem lote anterior, o "pago
+        // referente ao lote" é igual ao total pago (500_000n).
+        await registrarBaixaCliente(
+          tx,
+          { osId, data: '2026-09-02', valor: 500_000n, observacao: null },
+          usuario.id,
+        );
+        const primeiro = await gerarLote(tx, { osIds: [osId], observacao: null }, usuario.id);
+
+        const detalhePrimeiro = await obterLotePorId(primeiro.loteId, false, tx);
+        expect(detalhePrimeiro?.itens[0]).toMatchObject({
+          totalPagoClienteSnapshot: 500_000n,
+          pagoReferenteAoLoteSnapshot: 500_000n,
+          valorComissao: 35_000n,
+        });
+
+        // Resto pago: segundo lote da mesma OS. O total acumulado dobra
+        // (1_000_000n), mas o "pago referente a este lote" é só a fatia
+        // nova (500_000n), não o acumulado.
+        await registrarBaixaCliente(
+          tx,
+          { osId, data: '2026-09-06', valor: 500_000n, observacao: null },
+          usuario.id,
+        );
+        const segundo = await gerarLote(tx, { osIds: [osId], observacao: null }, usuario.id);
+
+        const detalheSegundo = await obterLotePorId(segundo.loteId, false, tx);
+        expect(detalheSegundo?.itens[0]).toMatchObject({
+          totalPagoClienteSnapshot: 1_000_000n,
+          pagoReferenteAoLoteSnapshot: 500_000n,
+          valorComissao: 35_000n,
+        });
+
+        throw ROLLBACK_TESTE;
+      }),
+    ).rejects.toBe(ROLLBACK_TESTE);
+  });
+
   it('sem rateio, nenhum SQL emitido menciona a tabela de rateio do item de lote', async () => {
     await expect(
       comTransacaoFinanceira(async (tx) => {

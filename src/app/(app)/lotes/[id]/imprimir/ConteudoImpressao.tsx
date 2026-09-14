@@ -1,9 +1,12 @@
 'use client';
 
 import { Botao } from '@/componentes/Botao';
+import { statusRecebimento } from '@/dominio/comissao';
 import { formatarDataBr } from '@/dominio/datas';
 import { formatarBRL } from '@/dominio/dinheiro';
 import type { LoteDetalhe } from '@/servidor/lotes/consultas';
+
+const ROTULO_STATUS = { aberta: 'Aberta', parcial: 'Parcial', quitada: 'Quitada' } as const;
 
 export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
   return (
@@ -46,36 +49,46 @@ export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
             <th scope="col" className="pb-1.5 pl-2 text-right text-[7.5px] font-bold uppercase tracking-[0.1em] text-texto-2">Valor da OS</th>
             <th scope="col" className="pb-1.5 pl-2 text-right text-[7.5px] font-bold uppercase tracking-[0.1em] text-texto-2">Pago pelo cliente</th>
             <th scope="col" className="pb-1.5 pl-2 text-right text-[7.5px] font-bold uppercase tracking-[0.1em] text-texto-2">Comissão já enviada</th>
+            <th scope="col" className="pb-1.5 pl-2 text-right text-[7.5px] font-bold uppercase tracking-[0.1em] text-texto-2">Pago referente a este lote</th>
             <th scope="col" className="pb-1.5 pl-2 text-right text-[7.5px] font-bold uppercase tracking-[0.1em] text-texto-2">Liberada para pagamento</th>
           </tr>
         </thead>
         <tbody>
-          {lote.itens.map((item) => (
-            <tr key={item.id} className="border-b border-borda align-top">
-              <td className="num py-2 font-bold">{item.numeroOsSnapshot}</td>
-              <td className="py-2 pl-2">
-                {item.clienteSnapshot}
-                <span className="block text-[9.5px] text-texto-2">{item.produtoSnapshot}</span>
-              </td>
-              <td className="num py-2 pl-2 text-right">{formatarBRL(item.valorOsSnapshot)}</td>
-              <td className="num py-2 pl-2 text-right">
-                {formatarBRL(item.totalPagoClienteSnapshot)}
-              </td>
-              <td className="num py-2 pl-2 text-right">
-                {/* Zero e "não se aplica" são coisas diferentes: primeira vez da OS num lote mostra traço. */}
-                {item.comissaoComprometidaAnteriorSnapshot > 0n
-                  ? formatarBRL(item.comissaoComprometidaAnteriorSnapshot)
-                  : '—'}
-              </td>
-              <td className="num py-2 pl-2 text-right font-bold">
-                {formatarBRL(item.valorComissao)}
-              </td>
-            </tr>
-          ))}
+          {lote.itens.map((item) => {
+            const status = statusRecebimento(item.totalPagoClienteSnapshot, item.valorOsSnapshot);
+            return (
+              <tr key={item.id} className="border-b border-borda align-top">
+                <td className="num py-2 font-bold">{item.numeroOsSnapshot}</td>
+                <td className="py-2 pl-2">
+                  {item.clienteSnapshot}
+                  <span className="block text-[9.5px] text-texto-2">
+                    {item.produtoSnapshot} · {ROTULO_STATUS[status]}
+                  </span>
+                </td>
+                <td className="num py-2 pl-2 text-right">{formatarBRL(item.valorOsSnapshot)}</td>
+                <td className="num py-2 pl-2 text-right">
+                  {formatarBRL(item.totalPagoClienteSnapshot)}
+                </td>
+                <td className="num py-2 pl-2 text-right">
+                  {/* Zero e "não se aplica" são coisas diferentes: primeira vez da OS num lote mostra traço. */}
+                  {item.comissaoComprometidaAnteriorSnapshot > 0n
+                    ? formatarBRL(item.comissaoComprometidaAnteriorSnapshot)
+                    : '—'}
+                </td>
+                <td className="num py-2 pl-2 text-right">
+                  {formatarBRL(item.pagoReferenteAoLoteSnapshot)}
+                </td>
+                <td className="num py-2 pl-2 text-right font-bold">
+                  {formatarBRL(item.valorComissao)}
+                </td>
+              </tr>
+            );
+          })}
           <tr className="border-t-2 border-texto">
             <td colSpan={2} className="pt-2.5 text-[11.5px]">
               Total do lote · {lote.itens.length} {lote.itens.length === 1 ? 'item' : 'itens'}
             </td>
+            <td className="num pt-2.5 pl-2 text-right"></td>
             <td className="num pt-2.5 pl-2 text-right"></td>
             <td className="num pt-2.5 pl-2 text-right"></td>
             <td className="num pt-2.5 pl-2 text-right"></td>

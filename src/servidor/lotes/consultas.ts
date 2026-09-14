@@ -21,6 +21,12 @@ export interface ItemLote {
   valorOsSnapshot: Centavos;
   totalPagoClienteSnapshot: Centavos;
   comissaoComprometidaAnteriorSnapshot: Centavos;
+  /**
+   * Quanto o cliente pagou desde o lote anterior desta mesma OS até este —
+   * a base que, multiplicada pelo percentual, gera `valorComissao`. Igual ao
+   * total pago quando é a primeira vez que a OS aparece num lote.
+   */
+  pagoReferenteAoLoteSnapshot: Centavos;
   rateio: PorPessoa | null;
 }
 
@@ -70,6 +76,24 @@ export async function obterLotePorId(
   `;
   if (!lote) return null;
 
+  // O pago referente a cada item é a diferença para o item anterior da
+  // mesma OS — comparando (número do lote, ordem do item), não a data,
+  // porque duas linhas do mesmo lote têm o mesmo instante de criação e um
+  // lote cancelado no meio pode deixar mais de um item da mesma OS num
+  // único lote novo. `0` quando é a primeira vez que a OS aparece.
+  const pagoAnteriorFragmento = exec`
+    coalesce((
+      select li2.total_pago_cliente_snapshot
+      from public.lote_item li2
+      join public.lote_financeiro lf2 on lf2.id = li2.lote_id
+      where li2.os_id = li.os_id
+        and lf2.estado_conferencia <> 'cancelado'
+        and (lf2.numero, li2.ordem) < (${lote.numero}, li.ordem)
+      order by lf2.numero desc, li2.ordem desc
+      limit 1
+    ), 0) as pago_anterior
+  `;
+
   // A consulta sem rateio nem toca interno.lote_item_rateio: o papel
   // `financeiro` nunca deve ver rateio, nem por acidente de projeção.
   const itensBrutos = incluirRateio
@@ -77,6 +101,7 @@ export async function obterLotePorId(
         select li.id, li.ordem, li.numero_os_snapshot, li.cliente_snapshot,
           li.produto_snapshot, li.valor_comissao, li.valor_os_snapshot,
           li.total_pago_cliente_snapshot, li.comissao_comprometida_anterior_snapshot,
+          ${pagoAnteriorFragmento},
           r.valor_thiago, r.valor_geice, r.valor_gabrielle
         from public.lote_item li
         join interno.lote_item_rateio r on r.lote_item_id = li.id
@@ -84,12 +109,13 @@ export async function obterLotePorId(
         order by li.ordem
       `
     : await exec`
-        select id, ordem, numero_os_snapshot, cliente_snapshot,
-          produto_snapshot, valor_comissao, valor_os_snapshot,
-          total_pago_cliente_snapshot, comissao_comprometida_anterior_snapshot
-        from public.lote_item
-        where lote_id = ${loteId}
-        order by ordem
+        select li.id, li.ordem, li.numero_os_snapshot, li.cliente_snapshot,
+          li.produto_snapshot, li.valor_comissao, li.valor_os_snapshot,
+          li.total_pago_cliente_snapshot, li.comissao_comprometida_anterior_snapshot,
+          ${pagoAnteriorFragmento}
+        from public.lote_item li
+        where li.lote_id = ${loteId}
+        order by li.ordem
       `;
 
   return {
@@ -119,6 +145,8 @@ export async function obterLotePorId(
       comissaoComprometidaAnteriorSnapshot: parseDecimal(
         i.comissao_comprometida_anterior_snapshot,
       ),
+      pagoReferenteAoLoteSnapshot:
+        parseDecimal(i.total_pago_cliente_snapshot) - parseDecimal(i.pago_anterior),
       rateio: incluirRateio
         ? {
             thiago: parseDecimal(i.valor_thiago),

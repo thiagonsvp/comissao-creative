@@ -135,5 +135,5 @@ body {
   }
   body { background: #FFFFFF; }
   .sem-impressao { display: none !important; }
-  @page { size: A4; margin: 1.8cm; }
+  @page { size: A4 landscape; margin: 1.8cm; }
 }
