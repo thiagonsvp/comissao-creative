@@ -35,6 +35,8 @@ export interface ResumoComissoes {
   liberada: Centavos;
   comprometida: Centavos;
   disponivel: Centavos;
+  valorPendenteClientes: Centavos;
+  comissaoFutura: Centavos;
   quantidadeComDisponivel: number;
   porStatus: Record<StatusRecebimento, number>;
 }
@@ -69,19 +71,36 @@ export function resumirComissoes(linhas: ComponentesOs[]): ResumoComissoes {
   let liberada = 0n;
   let comprometida = 0n;
   let disponivel = 0n;
+  let valorPendenteClientes = 0n;
+  let comissaoFutura = 0n;
   let quantidadeComDisponivel = 0;
 
   for (const linha of linhas) {
-    total += totalDa(linha);
-    liberada += liberadaDa(linha);
+    const totalLinha = totalDa(linha);
+    const liberadaLinha = liberadaDa(linha);
+    total += totalLinha;
+    liberada += liberadaLinha;
     comprometida += linha.comprometido;
+    valorPendenteClientes += linha.valorOs > linha.totalPagoCliente
+      ? linha.valorOs - linha.totalPagoCliente
+      : 0n;
+    comissaoFutura += totalLinha > liberadaLinha ? totalLinha - liberadaLinha : 0n;
     const daLinha = disponivelDa(linha);
     disponivel += daLinha;
     if (daLinha > 0n) quantidadeComDisponivel += 1;
     porStatus[statusRecebimento(linha.totalPagoCliente, linha.valorOs)] += 1;
   }
 
-  return { comissaoTotal: total, liberada, comprometida, disponivel, quantidadeComDisponivel, porStatus };
+  return {
+    comissaoTotal: total,
+    liberada,
+    comprometida,
+    disponivel,
+    valorPendenteClientes,
+    comissaoFutura,
+    quantidadeComDisponivel,
+    porStatus,
+  };
 }
 
 /**

@@ -59,6 +59,27 @@ export function PainelAdmin({
         />
       </div>
 
+      <section className="mb-3 rounded-xl border border-borda bg-superficie p-4">
+        <div className="mb-3 border-l-2 border-destaque pl-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-destaque">
+            Projeção futura
+          </p>
+          <h2 className="mt-1 text-sm font-semibold">Valores que dependem de pagamentos dos clientes</h2>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <CartaoValor
+            rotulo="Saldo a receber dos clientes"
+            valor={resumo.valorPendenteClientes}
+            detalhe="total das OS que ainda não foi pago pelos clientes"
+          />
+          <CartaoValor
+            rotulo="Comissão futura projetada"
+            valor={resumo.comissaoFutura}
+            detalhe="será liberada conforme os saldos dos clientes forem recebidos"
+          />
+        </div>
+      </section>
+
       <div className="mb-3 grid gap-3 md:grid-cols-[1.55fr_1fr]">
         <section className="rounded-xl border border-borda bg-superficie p-4">
           <h2 className="mb-3.5 text-sm font-semibold">Comissão gerada por mês</h2>

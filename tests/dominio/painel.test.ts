@@ -30,7 +30,20 @@ describe('resumirComissoes', () => {
     expect(resumo.liberada).toBe(105_000n);
     expect(resumo.comprometida).toBe(35_000n);
     expect(resumo.disponivel).toBe(70_000n);
+    expect(resumo.valorPendenteClientes).toBe(500_000n);
+    expect(resumo.comissaoFutura).toBe(35_000n);
     expect(resumo.quantidadeComDisponivel).toBe(2);
+  });
+
+  it('projeta o saldo dos clientes e a comissão que ainda será liberada', () => {
+    const resumo = resumirComissoes([
+      os({ osId: 'a', totalPagoCliente: 0n }),
+      os({ osId: 'b', totalPagoCliente: 250_000n }),
+      os({ osId: 'c', totalPagoCliente: 1_000_000n }),
+    ]);
+
+    expect(resumo.valorPendenteClientes).toBe(1_750_000n);
+    expect(resumo.comissaoFutura).toBe(122_500n);
   });
 
   it('conta OS por status de recebimento', () => {
@@ -50,6 +63,8 @@ describe('resumirComissoes', () => {
   it('lista vazia devolve zeros', () => {
     const resumo = resumirComissoes([]);
     expect(resumo.disponivel).toBe(0n);
+    expect(resumo.valorPendenteClientes).toBe(0n);
+    expect(resumo.comissaoFutura).toBe(0n);
     expect(resumo.quantidadeComDisponivel).toBe(0);
   });
 });
