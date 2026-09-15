@@ -7,8 +7,17 @@ import { formatarBRL } from '@/dominio/dinheiro';
 import type { LoteDetalhe } from '@/servidor/lotes/consultas';
 
 const ROTULO_STATUS = { aberta: 'Aberta', parcial: 'Parcial', quitada: 'Quitada' } as const;
+const COMPARADOR_NUMERO_OS = new Intl.Collator('pt-BR', {
+  numeric: true,
+  sensitivity: 'base',
+});
 
 export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
+  const itensOrdenados = [...lote.itens].sort(
+    (a, b) =>
+      COMPARADOR_NUMERO_OS.compare(a.numeroOsSnapshot, b.numeroOsSnapshot) || a.ordem - b.ordem,
+  );
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 print:px-0 print:py-0">
       {lote.motivoCancelamento && (
@@ -54,7 +63,7 @@ export function ConteudoImpressao({ lote }: { lote: LoteDetalhe }) {
           </tr>
         </thead>
         <tbody>
-          {lote.itens.map((item) => {
+          {itensOrdenados.map((item) => {
             const status = statusRecebimento(item.totalPagoClienteSnapshot, item.valorOsSnapshot);
             return (
               <tr key={item.id} className="border-b border-borda align-top">
