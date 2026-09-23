@@ -26,7 +26,11 @@ export function FormularioLogin() {
     setEmAndamento(false);
 
     if (error) {
-      setErro('E-mail ou senha inválidos');
+      setErro(
+        error.code === 'invalid_credentials'
+          ? 'E-mail ou senha inválidos'
+          : `Não foi possível entrar: ${error.message}`,
+      );
       return;
     }
 
