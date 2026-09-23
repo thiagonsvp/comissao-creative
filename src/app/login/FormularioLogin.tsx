@@ -1,19 +1,41 @@
 'use client';
 
-import { useActionState } from 'react';
+import { type FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Botao } from '@/componentes/Botao';
 import { CampoTexto } from '@/componentes/Campo';
-import { entrarAction } from '@/servidor/auth-acoes';
-import { ESTADO_INICIAL_FORMULARIO } from '@/servidor/formularios';
+import { criarClienteNavegador } from '@/servidor/supabase/navegador';
 
 export function FormularioLogin() {
-  const [estado, acao, emAndamento] = useActionState(
-    entrarAction,
-    ESTADO_INICIAL_FORMULARIO,
-  );
+  const router = useRouter();
+  const [erro, setErro] = useState<string | null>(null);
+  const [emAndamento, setEmAndamento] = useState(false);
+
+  async function entrar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    setErro(null);
+    setEmAndamento(true);
+
+    const dados = new FormData(evento.currentTarget);
+    const supabase = criarClienteNavegador();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: String(dados.get('email') ?? ''),
+      password: String(dados.get('senha') ?? ''),
+    });
+
+    setEmAndamento(false);
+
+    if (error) {
+      setErro('E-mail ou senha inválidos');
+      return;
+    }
+
+    router.replace('/');
+    router.refresh();
+  }
 
   return (
-    <form action={acao} className="flex w-full flex-col gap-4">
+    <form onSubmit={entrar} className="flex w-full flex-col gap-4">
       <CampoTexto
         nome="email"
         id="email"
@@ -21,7 +43,6 @@ export function FormularioLogin() {
         type="email"
         autoComplete="username"
         required
-        erro={estado.errosPorCampo.email}
       />
       <CampoTexto
         nome="senha"
@@ -30,11 +51,10 @@ export function FormularioLogin() {
         type="password"
         autoComplete="current-password"
         required
-        erro={estado.errosPorCampo.senha}
       />
-      {estado.erroGeral && (
+      {erro && (
         <p role="alert" className="text-[13px] text-erro">
-          {estado.erroGeral}
+          {erro}
         </p>
       )}
       <Botao type="submit" carregando={emAndamento} larguraTotal>
