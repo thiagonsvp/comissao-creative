@@ -18,6 +18,7 @@ export type { Executor };
 export type FiltroStatusOs = 'pendentes' | StatusRecebimento | 'todas';
 export type ColunaOrdenacaoOs =
   | 'numero'
+  | 'dataVenda'
   | 'cliente'
   | 'produto'
   | 'valor'
@@ -37,12 +38,15 @@ export interface FiltrosOs {
 export interface OsListada {
   id: string;
   numeroOs: string;
+  dataVenda: string;
   cliente: string;
   produto: string;
   valor: Centavos;
   status: StatusRecebimento;
   comissaoLiberada: Centavos;
   comissaoDisponivel: Centavos;
+  totalPagoCliente: Centavos;
+  comissaoTotal: Centavos;
 }
 
 export interface OsDetalhe extends OsListada {
@@ -121,12 +125,15 @@ function paraListada(linha: LinhaOs): OsListada {
   return {
     id: linha.id,
     numeroOs: linha.numero_os,
+    dataVenda: linha.data_venda,
     cliente: linha.cliente,
     produto: linha.produto,
     valor,
     status: statusRecebimento(totalPago, valor),
     comissaoLiberada: liberada,
     comissaoDisponivel: liberada > comprometido ? liberada - comprometido : 0n,
+    totalPagoCliente: totalPago,
+    comissaoTotal: calcularComissaoTotal(valor, percentual),
   };
 }
 
@@ -173,6 +180,9 @@ export async function listarOs(
   return lista.sort((a, b) => {
     let resultado: number;
     switch (coluna) {
+      case 'dataVenda':
+        resultado = a.dataVenda.localeCompare(b.dataVenda);
+        break;
       case 'cliente':
         resultado = compararTexto(a.cliente, b.cliente);
         break;
@@ -246,8 +256,6 @@ export async function obterOsPorId(
     tipoPagamento: linha.tipo_pagamento,
     dataVenda: linha.data_venda,
     observacao: linha.observacao,
-    totalPagoCliente: parseDecimal(linha.total_pago),
-    comissaoTotal: calcularComissaoTotal(base.valor, percentual),
     primeiroEnvioEm: linha.primeiro_envio_em ? linha.primeiro_envio_em.toISOString() : null,
     rateio,
     baixas: baixas.map((b) => ({

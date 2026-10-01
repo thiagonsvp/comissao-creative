@@ -13,8 +13,9 @@ export interface Destino {
 }
 
 export const DESTINOS: Destino[] = [
-  { href: '/', rotulo: 'Início', icone: '▣' },
+  { href: '/', rotulo: 'Início', icone: '■' },
   { href: '/os', rotulo: 'OS', icone: '≡' },
+  { href: '/relatorios', rotulo: 'Relatórios', icone: '▥', somenteAdmin: true },
   { href: '/lotes', rotulo: 'Lotes', icone: '▤' },
   { href: '/configuracao', rotulo: 'Configuração', icone: '⚙', somenteAdmin: true },
 ];
@@ -54,9 +55,7 @@ export function NavTopo({ papel, email }: { papel: Papel; email: string }) {
         </div>
         <div className="flex items-center gap-4">
           <AlternadorTema />
-          <span className="text-[12.5px] text-texto-2">
-            {email} ({papel})
-          </span>
+          <span className="text-[12.5px] text-texto-2">{email} ({papel})</span>
         </div>
       </div>
     </nav>

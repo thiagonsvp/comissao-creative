@@ -44,6 +44,7 @@ describe('consultas de OS', () => {
         expect(lista).toHaveLength(1);
         expect(lista[0]).toMatchObject({
           numeroOs: numero,
+          dataVenda: '2026-09-01',
           cliente: 'Cliente Consulta',
           valor: 1_000_000n,
           status: 'parcial',

@@ -5,7 +5,7 @@ import { EstadoVazio } from '@/componentes/EstadoVazio';
 import { Moeda } from '@/componentes/Moeda';
 import { Selo, seloDeStatusOs } from '@/componentes/Selo';
 import { CLASSE_ENTRADA } from '@/componentes/Campo';
-import { validarDataIso } from '@/dominio/datas';
+import { formatarDataBr, validarDataIso } from '@/dominio/datas';
 import { sessaoDaPagina } from '@/servidor/auth';
 import {
   listarOs,
@@ -18,7 +18,7 @@ const STATUS_VALIDOS = new Set<FiltroStatusOs>([
   'pendentes', 'aberta', 'parcial', 'quitada', 'todas',
 ]);
 const COLUNAS_VALIDAS = new Set<ColunaOrdenacaoOs>([
-  'numero', 'cliente', 'produto', 'valor', 'status', 'comissaoDisponivel',
+  'numero', 'dataVenda', 'cliente', 'produto', 'valor', 'status', 'comissaoDisponivel',
 ]);
 
 function dataValida(valor?: string): string | undefined {
@@ -169,7 +169,7 @@ export default async function PaginaListaOs({
                   href={`/os/${os.id}`}
                   titulo={os.numeroOs}
                   selo={seloDeStatusOs(os.status)}
-                  descricao={`${os.cliente} · ${os.produto}`}
+                  descricao={`${formatarDataBr(os.dataVenda)} · ${os.cliente} · ${os.produto}`}
                   rotuloValor="Disponível"
                   valor={os.comissaoDisponivel}
                 />
@@ -182,6 +182,7 @@ export default async function PaginaListaOs({
             <thead>
               <tr>
                 {cabecalho('numero', 'Número')}
+                {cabecalho('dataVenda', 'Data da venda')}
                 {cabecalho('cliente', 'Cliente')}
                 {cabecalho('produto', 'Produto')}
                 {cabecalho('valor', 'Valor', true)}
@@ -197,6 +198,7 @@ export default async function PaginaListaOs({
                       {os.numeroOs}
                     </Link>
                   </td>
+                  <td className="num whitespace-nowrap">{formatarDataBr(os.dataVenda)}</td>
                   <td>{os.cliente}</td>
                   <td className="text-texto-2">{os.produto}</td>
                   <td className="direita"><Moeda valor={os.valor} /></td>
